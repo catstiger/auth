@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+	<jmxConfigurator />
+
+	<appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+		<encoder>
+			<pattern>%d{yy/MM/dd HH:mm:ss.SSS} %-5level %logger.%M - %msg%n </pattern>
+		</encoder>
+	</appender>
+
+	<appender name="rollingFile" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>logs/catstiger.log</file>
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<fileNamePattern>logs/catstiger.%d{yyyy-MM-dd}.log</fileNamePattern>
+		</rollingPolicy>
+		<encoder>
+			<pattern>%d{yy/MM/dd HH:mm:ss.SSS} %-5level %logger{35}.%M  - %msg%n</pattern>
+		</encoder>
+	</appender>
+
+	<logger name="org.apache.jsp" level="INFO" />
+	<logger name="org.apache" level="WARN" />
+	<logger name="org.springframework" level="WARN" />
+	<logger name="org.apache.catalina" level="WARN" />
+	<logger name="com.github.catstiger" level="DEBUG" />
+	<!-- root -->
+	<root level="DEBUG">
+		<appender-ref ref="console" />
+		<appender-ref ref="rollingFile" />
+	</root>
+</configuration>

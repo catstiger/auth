@@ -16,7 +16,7 @@
 		
 		<!-- Theme style -->
 		<link rel="stylesheet" href="/statics/adminlte/css/AdminLTE.css">
-		<link rel="stylesheet" href="/statics/adminlte/css/skins/skin-green.min.css">
+		<link rel="stylesheet" href="/statics/adminlte/css/skins/skin-red.min.css">
 		<link rel="stylesheet" href="/statics/plugins/iCheck/flat/blue.css">
 		<link rel="stylesheet" href="/statics/plugins/datepicker/datepicker3.css">
 		<link rel="stylesheet" href="/statics/plugins/daterangepicker/daterangepicker.css">
