@@ -36,7 +36,8 @@ public class RedisCacheTest extends SpringTestCase{
       public Boolean doInRedis(RedisConnection connection) throws DataAccessException {   
         final RedisSerializer<String> keySerializer = ((RedisSerializer<String>) redisTemplate.getKeySerializer());
         final RedisSerializer<Object> valueSerializer = (RedisSerializer<Object>) redisTemplate.getValueSerializer();
-        final byte[] key = keySerializer.serialize("test.catstiger4");
+        System.out.println(valueSerializer.getClass());
+        final byte[] key = keySerializer.serialize("test.catstiger5");
         byte[] value = valueSerializer.serialize((model));    
         
         connection.setNX(key, value);
@@ -49,7 +50,7 @@ public class RedisCacheTest extends SpringTestCase{
       public TestModel doInRedis(RedisConnection connection) throws DataAccessException {
         final RedisSerializer<String> keySerializer = ((RedisSerializer<String>) redisTemplate.getKeySerializer());
         final RedisSerializer<Object> valueSerializer = (RedisSerializer<Object>) redisTemplate.getValueSerializer();
-        final byte[] key = keySerializer.serialize("test.catstiger4");
+        final byte[] key = keySerializer.serialize("test.catstiger5");
         byte[] value = connection.get(key);
         Object obj = valueSerializer.deserialize(value);
         System.out.println(obj);
