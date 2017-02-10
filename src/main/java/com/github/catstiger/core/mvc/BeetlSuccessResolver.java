@@ -1,4 +1,4 @@
-package com.github.catstiger.mvc.resolver;
+package com.github.catstiger.core.mvc;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -9,6 +9,7 @@ import org.beetl.ext.servlet.ServletGroupTemplate;
 
 import com.github.catstiger.mvc.config.ApiResource;
 import com.github.catstiger.mvc.config.Initializer;
+import com.github.catstiger.mvc.resolver.JspSuccessResolver;
 
 public class BeetlSuccessResolver extends JspSuccessResolver {
   public static final String BEETL_TEMPLATE_SUFFIX = ".html";

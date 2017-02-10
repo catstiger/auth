@@ -1,4 +1,4 @@
-package com.github.catstiger.redis;
+package com.github.catstiger.core.redis;
 
 import java.io.IOException;
 import java.io.InputStream;

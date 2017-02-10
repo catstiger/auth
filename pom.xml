@@ -5,6 +5,7 @@
 	<artifactId>catstiger-auth</artifactId>
 	<version>0.1.0</version>
 	<properties>
+	    <lombok.version>1.16.12</lombok.version>
 	    <catstiger-mvc.version>0.1.22</catstiger-mvc.version>
 		<spring.version>4.2.9.RELEASE</spring.version>
 		<beetl.version>2.7.11</beetl.version>
@@ -39,6 +40,12 @@
 		</plugins>
 	</build>
 	<dependencies>
+	    <dependency>
+		    <groupId>org.projectlombok</groupId>
+		    <artifactId>lombok</artifactId>
+		    <version>${lombok.version}</version>
+		</dependency>
+	    
 		<dependency>
 			<groupId>com.github.catstiger</groupId>
 			<artifactId>catstiger-mvc</artifactId>
@@ -222,6 +229,19 @@
 			<version>1.1.2</version>
 			<scope>provided</scope>
 		</dependency>
+		
+		<dependency>
+		    <groupId>javax.persistence</groupId>
+		    <artifactId>persistence-api</artifactId>
+		    <version>1.0.2</version>
+		</dependency>
+		<dependency>
+		    <groupId>javax.validation</groupId>
+		    <artifactId>validation-api</artifactId>
+		    <version>1.1.0.Final</version>
+		</dependency>
+		
+		
 	</dependencies>
 
 	<repositories>

@@ -41,7 +41,7 @@
 	    </init-param>
 	    <init-param>
 	       <param-name>defaultSuccessTemplateResolver</param-name>
-	       <param-value>com.github.catstiger.mvc.resolver.BeetlSuccessResolver</param-value>
+	       <param-value>com.github.catstiger.core.mvc.BeetlSuccessResolver</param-value>
 	    </init-param>
 	    <init-param>
 	       <param-name>cacheSeconds</param-name>

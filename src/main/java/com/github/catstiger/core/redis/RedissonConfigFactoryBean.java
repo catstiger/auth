@@ -1,4 +1,4 @@
-package com.github.catstiger.redis;
+package com.github.catstiger.core.redis;
 
 import org.redisson.config.Config;
 import org.springframework.beans.factory.FactoryBean;

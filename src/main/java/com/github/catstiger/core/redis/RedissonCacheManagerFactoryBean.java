@@ -1,4 +1,4 @@
-package com.github.catstiger.redis;
+package com.github.catstiger.core.redis;
 
 import java.io.InputStream;
 import java.util.HashMap;
