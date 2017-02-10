@@ -53,43 +53,27 @@
 		<property name="dataSource" ref="dataSource" />
 	</bean>
 
-	<task:annotation-driven />
+	<task:annotation-driven proxy-target-class="true"/>
 	
 	<!-- Redis -->
-    <bean id="jedisPoolConfig" class="redis.clients.jedis.JedisPoolConfig">
-        <property name="maxTotal"  value="${redis.maxTotal}" />
-        <property name="maxIdle" value="${redis.maxIdle}" />
-        <property name="minIdle" value="${redis.minIdle}" />
-        <property name="maxWaitMillis" value="20000" />
-        <property name="testOnBorrow"  value="true"/>
-    </bean>
-    
-    <bean id="connectionFactory" class="org.springframework.data.redis.connection.jedis.JedisConnectionFactory">
-        <property name="hostName" value="${redis.host}"></property>
-        <property name="port" value="${redis.port}"></property>
-        <property name="password" value="${redis.pass}"></property>
-        <property name="poolConfig" ref="jedisPoolConfig"></property>
-    </bean> 
-    
-    <bean id="redisTemplate" class="org.springframework.data.redis.core.RedisTemplate">
-        <property name="connectionFactory" ref="connectionFactory" />
-        <property name="keySerializer">
-            <bean class="org.springframework.data.redis.serializer.StringRedisSerializer" />
-        </property>
-        <property name="valueSerializer">
-            <bean class="com.github.catstiger.cache.JsonRedisSerializer" />
-        </property>
-    </bean>
-    
-    <bean id="cacheManager" class="org.springframework.data.redis.cache.RedisCacheManager">
-       <constructor-arg name="redisOperations" ref="redisTemplate" />  
-       <property name="usePrefix" value="true" ></property>
-    </bean>
-    
+	<bean id="redissonClient" class="org.redisson.Redisson" factory-method="create" destroy-method="shutdown">
+	    <constructor-arg>
+	        <bean class="com.github.catstiger.redis.RedissonConfigFactoryBean">
+		        <!-- 配置Redis链接信息 -->
+			    <property name="configLocation" value="classpath:redis.properties" />
+			    <!-- 配置文件中，各个key的前缀 -->
+			    <property name="prefix" value="redis"></property>
+	        </bean>
+	    </constructor-arg>
+	</bean>
+	
+	<bean id="cacheManager" class="om.github.catstiger.redis.RedissonCacheManagerFactoryBean">
+	    <property name="redissonClient" ref="redissonClient"/>
+	    <!-- 配置不同Name的Cache中数据的过期时间和最大空闲时间 -->
+	    <property name="cacheConfig" value="classpath:redis.properties"/>
+	    <!-- 配置文件中各个key，也就是cache name的前缀 -->
+	    <property name="cacheNamePrefx" value="expiry"></property>
+	</bean> 
     <cache:annotation-driven proxy-target-class="true" cache-manager="cacheManager" />
     
-    <!-- 
-    <bean id="redisCachingConfigurer" class="com.github.catstiger.cache.RedisCachingConfigurer">
-    </bean>
-     -->
 </beans>

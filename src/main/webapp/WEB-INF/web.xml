@@ -2,9 +2,14 @@
 <web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xmlns="http://xmlns.jcp.org/xml/ns/javaee"
 	xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_3_1.xsd"
-	id="WebApp_ID" version="3.1">
+	id="catstiger-auth" version="3.1">
 	<display-name>Auth</display-name>
-
+	<!-- Spring application context -->
+	<context-param>
+	    <param-name>contextConfigLocation</param-name>
+	    <param-value>classpath*:applicationContext*.xml</param-value>
+	</context-param>
+    <!-- Spring encoding filter -->
 	<filter>
 		<filter-name>CharacterEncodingFilter</filter-name>
 		<filter-class>org.springframework.web.filter.CharacterEncodingFilter</filter-class>
@@ -18,7 +23,7 @@
 		</init-param>
 		
 	</filter>
-
+    <!-- Catstiger MVC, a easy use MVC framework. -->
 	<filter>
 		<filter-name>catstiger-mvc</filter-name>
 		<filter-class>com.github.catstiger.mvc.MvcFilter</filter-class>
@@ -34,7 +39,10 @@
           <param-name>uriPrefix</param-name>
           <param-value>/</param-value>
 	    </init-param>
-	      
+	    <init-param>
+	       <param-name>defaultSuccessTemplateResolver</param-name>
+	       <param-value>com.github.catstiger.mvc.resolver.BeetlSuccessResolver</param-value>
+	    </init-param>
 	    <init-param>
 	       <param-name>cacheSeconds</param-name>
 	       <param-value>0</param-value>
