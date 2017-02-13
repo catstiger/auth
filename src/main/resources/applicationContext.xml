@@ -16,6 +16,7 @@
 
 	<context:spring-configured />
 	<context:component-scan base-package="com.github.catstiger.auth" />
+	<context:component-scan base-package="com.github.catstiger.core" />
 	<context:property-placeholder location="classpath*:*.properties" />
 
 	<bean id="dataSource" class="com.alibaba.druid.pool.DruidDataSource"
