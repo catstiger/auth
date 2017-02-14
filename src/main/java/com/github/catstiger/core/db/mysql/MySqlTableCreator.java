@@ -15,6 +15,8 @@ import com.github.catstiger.core.db.ColumnCreator;
 import com.github.catstiger.core.db.DatabaseInfo;
 import com.github.catstiger.core.db.ORMHelper;
 import com.github.catstiger.core.db.TableCreator;
+import com.github.catstiger.utils.ReflectUtils;
+import com.github.catstiger.utils.StringUtils;
 import com.google.common.base.Joiner;
 
 @Component
@@ -32,7 +34,7 @@ public class MySqlTableCreator implements TableCreator {
   @Override
   public void createTableIfNotExists(Class<?> entityClass) {
     String table = ORMHelper.tableNameByEntity(entityClass);
-    Field[] fields = entityClass.getFields();
+    Field[] fields = ReflectUtils.getFields(entityClass);
     
     if(!this.isTableExists(entityClass)) {
       StringBuilder sqlBuf = new StringBuilder(500)
@@ -41,7 +43,15 @@ public class MySqlTableCreator implements TableCreator {
           .append("(");
       List<String> sqls = new ArrayList<String>(fields.length); //SQL片段
       for(Field field : fields) {
-        sqls.add(columnCreator.getColumnSqlFragment(entityClass, field.getName()));
+        if(ORMHelper.isFieldIgnore(field)) {
+          continue;
+        }
+        String sqlFregment = columnCreator.getColumnSqlFragment(entityClass, field.getName());
+        logger.debug("SQL Fregment {}", sqlFregment);
+        if(StringUtils.isBlank(sqlFregment)) {
+          continue;
+        }
+        sqls.add(sqlFregment);
       }
       sqlBuf.append(Joiner.on(",\n").join(sqls))
       .append(")");
@@ -58,9 +68,12 @@ public class MySqlTableCreator implements TableCreator {
 
   @Override
   public void updateTable(Class<?> entityClass) {
-    Field[] fields = entityClass.getFields();
+    Field[] fields = ReflectUtils.getFields(entityClass);
     if(this.isTableExists(entityClass)) {
       for(Field field : fields) {
+        if(ORMHelper.isFieldIgnore(field)) {
+          continue;
+        }
         columnCreator.addColumnIfNotExists(entityClass, field.getName());
       }
     }

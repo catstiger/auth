@@ -1,10 +1,10 @@
 package com.github.catstiger.core.db;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.concurrent.ConcurrentSkipListSet;
 
 import javax.persistence.Entity;
 
@@ -23,7 +23,7 @@ import org.springframework.util.ClassUtils;
 @Component
 public class ModelClassLoader {
   private static final String RESOURCE_PATTERN = "/**/*.class";
-  private static Set<Class<?>> entityClasses = new ConcurrentSkipListSet<>();
+  private static Set<Class<?>> entityClasses = new HashSet<>();
   
   public Iterator<Class<?>> getEntityClasses() {
     return entityClasses.iterator();

@@ -2,10 +2,6 @@ package com.github.catstiger.core.db.mysql;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Date;
 
@@ -46,6 +42,10 @@ public class MySqlColumnCreator implements ColumnCreator {
   
   @Override
   public void addColumnIfNotExists(Class<?> entityClass, String field) {
+    if(ORMHelper.isFieldIgnore(entityClass, field)) {
+      return;
+    }
+    
     if(!isColumnExists(entityClass, field)) {
       StringBuilder sqlBuilder = new StringBuilder(100)
           .append("alter table ")
@@ -53,6 +53,7 @@ public class MySqlColumnCreator implements ColumnCreator {
           .append(" add column (")
           .append(getColumnSqlFragment(entityClass, field))
           .append(")");
+      logger.debug("新增字段 : {}", sqlBuilder);
       jdbcTemplate.execute(sqlBuilder.toString());
     }
   }
@@ -178,6 +179,14 @@ public class MySqlColumnCreator implements ColumnCreator {
 
   @Override
   public void addForeignKeyIfNotExists(Class<?> entityClass, String field, Class<?> refClass, String refField) {
+    if(ORMHelper.isEntityIgnore(entityClass)) {
+      return;
+    }
+    
+    if(ORMHelper.isFieldIgnore(entityClass, field)) {
+      return;
+    }
+    
     if(!this.strongReferences) { //非强关联，不建立外键
       indexCreator.addIndexIfNotExists(entityClass, field); //外键需要创建索引
       return;
@@ -188,14 +197,14 @@ public class MySqlColumnCreator implements ColumnCreator {
     String refColumn = ORMHelper.columnNameByField(refClass, refField);
     
     if(!databaseInfo.isForeignKeyExists(table, column, refTable, refColumn)) {
-      String fkName = new StringBuilder(30).append("fk_").append(table).append("_").append(column).append("_").append(refTable).append("_").append(refColumn).toString();
+      String fkName = new StringBuilder(30).append("fk_").append(table).append("_").append(column).append("_").append(refTable).toString();
       StringBuilder sqlBuilder = new StringBuilder(200)
           .append("ALTER TABLE ")
           .append(table)
           .append(" ADD CONSTRAINT ")
           .append(fkName)
           .append(" FOREIGN KEY (")
-          .append(refColumn)
+          .append(column)
           .append(") REFERENCES ")
           .append(refTable)
           .append("(").append(refColumn).append(")");
@@ -206,41 +215,8 @@ public class MySqlColumnCreator implements ColumnCreator {
 
   @Override
   public Boolean isColumnExists(Class<?> entityClass, String field) {
-    Connection conn = null;
-    try {
-      conn = jdbcTemplate.getDataSource().getConnection();
-      DatabaseMetaData dbMetaData = conn.getMetaData();
-      String table = ORMHelper.tableNameByEntity(entityClass);
-      String colname = ORMHelper.columnNameByField(entityClass, field);
-      ResultSet rs = dbMetaData.getCatalogs();
-      String catalog = "def";
-      
-      if(rs.next()) {
-        catalog = rs.getString(1); //CATALOG
-        logger.debug("TABLE_CATALOG is {}", catalog);     
-      }
-
-      rs = dbMetaData.getSchemas(catalog, null);
-      String schema = "auth";
-      
-      if(rs.next()) {
-        schema = rs.getString("TABLE_SCHEM");  
-      }
-      
-      rs = dbMetaData.getColumns(catalog, schema, table, colname);
-      return rs.next();
-      
-    } catch (SQLException e) {
-      e.printStackTrace();
-    } finally {
-      try {
-        conn.close();
-      } catch (SQLException e) {
-        e.printStackTrace();
-      }
-    }
-    
-    return false;
+    String table = ORMHelper.tableNameByEntity(entityClass);
+    String colname = ORMHelper.columnNameByField(entityClass, field);
+    return databaseInfo.isColumnExists(table, colname);
   }
-
 }

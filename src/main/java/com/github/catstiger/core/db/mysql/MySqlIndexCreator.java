@@ -34,6 +34,10 @@ public class MySqlIndexCreator implements IndexCreator {
 
   @Override
   public void addIndexIfNotExists(Class<?> entityClass, String fieldName) {
+    if(ORMHelper.isFieldIgnore(entityClass, fieldName)) {
+      return;
+    }
+    
     @NonNull Field field = ReflectionUtils.findField(entityClass, fieldName);
     @NonNull Method getter = ReflectionUtils.findMethod(entityClass, "get" + StringUtils.upperFirst(field.getName()));
     Index index = getter.getAnnotation(Index.class);

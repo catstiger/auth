@@ -2,15 +2,20 @@ package com.github.catstiger.core.db;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.function.Consumer;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.JoinColumn;
+import javax.persistence.ManyToMany;
 import javax.persistence.Table;
 
 import org.springframework.util.ReflectionUtils;
 
+import com.github.catstiger.core.db.annotation.SyncIgnore;
+import com.github.catstiger.utils.ReflectUtils;
 import com.github.catstiger.utils.StringUtils;
+import com.google.common.base.Splitter;
 
 import lombok.NonNull;
 
@@ -23,7 +28,18 @@ public abstract class ORMHelper {
       return false;
     }
     
-    return entityClass.getAnnotation(Entity.class) != null;
+    return (entityClass.getAnnotation(Entity.class) != null) && (entityClass.getAnnotation(SyncIgnore.class) == null);
+  }
+  
+  /**
+   * 判断一个实体类是否被数据同步忽略，被SyncIgnore标注的类会被忽略
+   */
+  public static Boolean isEntityIgnore(Class<?> entityClass) {
+    if(entityClass == null) {
+      return true;
+    }
+    
+    return entityClass.getAnnotation(SyncIgnore.class) != null;
   }
   
   /**
@@ -87,7 +103,12 @@ public abstract class ORMHelper {
     return columnName;
   }
   /**
-   * 根据实体类，和field，获取对应的GETTER方法
+   * 根据实体类，和field，获取对应的GETTER方法。被如下Annotation标注的字段或者对应的Getter方法，会被忽略
+   * <ul>
+   *     <li>javax.persistence.Transient</li>
+   *     <li>java.beans.Transient</li>
+   *     <li>javax.persistence.ManyToMany</li>
+   * </ul>
    * @param entityClass 实体类
    * @param fieldName 属性名
    * @return Getter Meth
@@ -127,7 +148,40 @@ public abstract class ORMHelper {
       return true;
     }
     
-    return false;
+    ManyToMany m2m = field.getAnnotation(ManyToMany.class);
+    if(m2m != null) {
+      return true;
+    }
+    m2m = getter.getAnnotation(ManyToMany.class);
+    if(m2m != null) {
+      return true;
+    }
     
+    return false;
+  }
+  
+  public static Boolean isFieldIgnore(Class<?> entityClass, String fieldName) {
+    try {
+      Field field = ReflectUtils.findField(entityClass, fieldName);
+      return isFieldIgnore(field);
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+    
+    return false;
+  }
+  
+  public static String simpleName(@NonNull String name) {
+    StringBuilder strBuilder = new StringBuilder();
+    Splitter.on("_").split(name).forEach(new Consumer<String>() {
+      @Override
+      public void accept(String t) {
+        if(t != null && t.length() > 1) {
+          strBuilder.append(t.charAt(0));
+        }
+      }
+    });
+    
+    return strBuilder.toString();
   }
 }
