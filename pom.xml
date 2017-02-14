@@ -6,7 +6,7 @@
 	<version>0.1.0</version>
 	<properties>
 	    <lombok.version>1.16.12</lombok.version>
-	    <catstiger-mvc.version>0.1.23</catstiger-mvc.version>
+	    <catstiger-mvc.version>0.1.24</catstiger-mvc.version>
 		<spring.version>4.2.9.RELEASE</spring.version>
 		<beetl.version>2.7.11</beetl.version>
 		<beetlsql.version>2.8.1</beetlsql.version>

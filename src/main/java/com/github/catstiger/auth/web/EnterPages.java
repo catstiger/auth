@@ -5,8 +5,7 @@ import com.github.catstiger.mvc.annotation.Domain;
 
 @Domain("/")
 public class EnterPages {
-  @API("index")
-  public String index() {
-    return "a";
+  @API("register")
+  public void register() {
   }
 }
