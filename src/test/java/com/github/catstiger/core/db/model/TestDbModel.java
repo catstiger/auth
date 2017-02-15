@@ -1,29 +1,27 @@
 package com.github.catstiger.core.db.model;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
-import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToMany;
 import javax.persistence.Table;
 
 import com.github.catstiger.core.db.annotation.Index;
+import com.github.catstiger.core.db.annotation.SyncIgnore;
+import com.github.catstiger.core.model.AbstractModel;
 
 import lombok.Getter;
 import lombok.Setter;
 
 @Entity
 @Table(name = "test_db_model")
-public class TestDbModel implements Serializable {
+@SyncIgnore
+public class TestDbModel extends AbstractModel {
 
-  @Getter(onMethod = @__({@Id, @org.beetl.sql.core.annotatoin.AutoID})) @Setter
-  private Long id;
-  
   @Getter @Setter
   @Index
   private String username;

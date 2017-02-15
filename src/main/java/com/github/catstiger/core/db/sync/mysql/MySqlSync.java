@@ -1,8 +1,10 @@
-package com.github.catstiger.core.db.mysql;
+package com.github.catstiger.core.db.sync.mysql;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Set;
 
 import javax.annotation.Resource;
 import javax.persistence.JoinColumn;
@@ -13,14 +15,15 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import com.github.catstiger.core.db.ColumnCreator;
-import com.github.catstiger.core.db.DatabaseInfo;
-import com.github.catstiger.core.db.DbSync;
-import com.github.catstiger.core.db.IndexCreator;
-import com.github.catstiger.core.db.ManyToManyCreator;
-import com.github.catstiger.core.db.ModelClassLoader;
-import com.github.catstiger.core.db.ORMHelper;
-import com.github.catstiger.core.db.TableCreator;
+import com.github.catstiger.core.db.sync.ColumnCreator;
+import com.github.catstiger.core.db.sync.DatabaseInfo;
+import com.github.catstiger.core.db.sync.DbSync;
+import com.github.catstiger.core.db.sync.IndexCreator;
+import com.github.catstiger.core.db.sync.ManyToManyCreator;
+import com.github.catstiger.core.db.sync.ModelClassLoader;
+import com.github.catstiger.core.db.sync.ORMHelper;
+import com.github.catstiger.core.db.sync.TableCreator;
+import com.github.catstiger.mvc.exception.Exceptions;
 import com.github.catstiger.utils.ReflectUtils;
 
 @Service
@@ -54,14 +57,20 @@ public class MySqlSync implements DbSync, InitializingBean {
   
   @Override
   public void sync() {
+    Set<String> tables = new HashSet<String>();
     Iterator<Class<?>> entityItr = modelClassLoader.getEntityClasses();
     //创建所有表和字段
     while(entityItr.hasNext()) {
       Class<?> entityClass = entityItr.next();
       
       if(ORMHelper.isEntity(entityClass)) {
+        String table = ORMHelper.tableNameByEntity(entityClass);
+        if(tables.contains(table)) {
+          throw Exceptions.readable("表名重复，请检查实体类 " + entityClass.getName() );
+        }
         logger.debug("同步字段 {}", entityClass);
         syncEntity(entityClass);
+        tables.add(table);
       }
     }
     

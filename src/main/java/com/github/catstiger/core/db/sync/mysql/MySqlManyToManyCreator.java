@@ -1,4 +1,4 @@
-package com.github.catstiger.core.db.mysql;
+package com.github.catstiger.core.db.sync.mysql;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -12,9 +12,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
-import com.github.catstiger.core.db.DatabaseInfo;
-import com.github.catstiger.core.db.ManyToManyCreator;
-import com.github.catstiger.core.db.ORMHelper;
+import com.github.catstiger.core.db.sync.DatabaseInfo;
+import com.github.catstiger.core.db.sync.ManyToManyCreator;
+import com.github.catstiger.core.db.sync.ORMHelper;
 import com.github.catstiger.utils.ReflectUtils;
 import com.github.catstiger.utils.StringUtils;
 
@@ -67,7 +67,7 @@ public class MySqlManyToManyCreator implements ManyToManyCreator {
     //创建交叉表
     StringBuilder sqlBuilder = new StringBuilder(100).append("create table ").append(crossTable).append("(")
         .append(masterColumn).append(" bigint,").append(slaveColumn).append(" bigint)");
-    logger.debug("创建交叉表 {}", sqlBuilder);
+    logger.debug("创建交叉表 {}, {}", entityClass.getSimpleName(), sqlBuilder);
     jdbcTemplate.execute(sqlBuilder.toString());
     //交叉表唯一索引
     StringBuilder sqlIndex = new StringBuilder(100).append("ALTER TABLE ").append(crossTable).append("  ADD UNIQUE ( ")

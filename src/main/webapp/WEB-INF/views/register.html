@@ -1,9 +1,48 @@
 <%
 layout("/layout/simple.layout.html", {title : '来客开放平台-用户注册'}) { 
 %>
-<div style="background-color:#fefefe;" class="container">
-aa
+
+<div class="row" style="padding-bottom:100px;padding-top:50px;">
+  <div class="col-md-3 hidden-xs hidden-sm"></div>
+  <div class="col-md-6 col-xs-12">
+      <h3 style="margin-bottom:20px;">注册账号</h3>
+	  <div class="input-group">
+		  <span class="input-group-addon" ><i class="fa fa-fw fa-user"></i></span>
+		  <input type="text" class="form-control" placeholder="用户名，中文、英文、数字或者下划线">
+	  </div>
+	  <div class="input-group">
+		  <span class="input-group-addon" ><i class="fa fa-fw fa-mobile"></i></span>
+		  <input type="text" class="form-control" placeholder="手机，用于接收验证码">
+		  <span class="input-group-btn">
+	        <button class="btn btn-default" type="button" id="点击获取验证码">点击获取验证码</button>
+	      </span>
+	  </div>
+	  <div class="input-group">
+		  <span class="input-group-addon"><i class="fa fa-fw  fa-ellipsis-h"></i></span>
+		  <input type="text" class="form-control" placeholder="请输入短信验证码">
+	  </div>
+	  <div class="input-group">
+		  <span class="input-group-addon"><i class="fa fa-fw fa-key"></i></span>
+		  <input type="text" class="form-control" placeholder="密码，大于8字符，区分大小写">
+	  </div>
+	  <div class="input-group">
+		  <span class="input-group-addon" ><i class="fa fa-fw fa-apple"></i></span>
+		  <input type="text" class="form-control" placeholder="请输入您所在公司名">
+	  </div>
+	  
+	  <div class="row">
+	     <div class="col-md-4">
+	          <a href="/login.html" class="btn btn-default" style="width:100%;">登录</a>
+	     </div>
+	     <div class="col-md-8">
+	          <button type="button" class="btn btn-primary" style="width:100%;">注册</button>
+	     </div>
+	  </div>
+  
+  </div>
+  <div class="col-md-3 hidden-xs hidden-sm"></div>
 </div>
+
 <%
 }
 %>

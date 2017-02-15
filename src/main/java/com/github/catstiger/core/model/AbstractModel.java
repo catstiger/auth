@@ -4,12 +4,13 @@ import java.io.Serializable;
 
 import javax.persistence.Id;
 
-import org.beetl.sql.core.annotatoin.AutoID;
+import org.beetl.sql.core.annotatoin.AssignID;
 
 public abstract class AbstractModel implements Serializable {
   protected Long id;
 
-  @Id @AutoID
+  @Id
+  @AssignID("workers")
   public Long getId() {
     return id;
   }

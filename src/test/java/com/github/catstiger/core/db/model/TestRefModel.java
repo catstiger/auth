@@ -10,9 +10,11 @@ import javax.persistence.Transient;
 import org.beetl.sql.core.annotatoin.AutoID;
 
 import com.github.catstiger.core.db.annotation.Index;
+import com.github.catstiger.core.db.annotation.SyncIgnore;
 
 @Entity
 @Table(name = "test_ref_model")
+@SyncIgnore
 public class TestRefModel {
   
   private Long id;

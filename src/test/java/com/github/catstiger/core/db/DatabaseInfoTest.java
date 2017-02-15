@@ -5,6 +5,7 @@ import javax.annotation.Resource;
 import org.junit.Test;
 
 import com.github.catstiger.core.BaseSpringTest;
+import com.github.catstiger.core.db.sync.DatabaseInfo;
 
 public class DatabaseInfoTest extends BaseSpringTest {
   @Resource

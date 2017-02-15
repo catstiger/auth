@@ -1,4 +1,4 @@
-package com.github.catstiger.core.db;
+package com.github.catstiger.core.db.sync;
 
 import java.util.Collection;
 import java.util.Iterator;

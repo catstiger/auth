@@ -1,9 +1,7 @@
 package com.github.catstiger.auth.model;
 
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 import javax.persistence.Column;
@@ -51,9 +49,7 @@ public class SysUser extends AbstractModel {
   
   @ManyToMany(targetEntity = SysRole.class)
   private Set<SysRole> roles = new HashSet<SysRole>(0);
-  
-  @ManyToMany(targetEntity = UserApp.class)
-  private List<UserApp> userApps = new ArrayList<>(0);
+
 }
 
 

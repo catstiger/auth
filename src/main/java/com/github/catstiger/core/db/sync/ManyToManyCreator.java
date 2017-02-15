@@ -1,4 +1,4 @@
-package com.github.catstiger.core.db;
+package com.github.catstiger.core.db.sync;
 
 import javax.persistence.ManyToMany;
 

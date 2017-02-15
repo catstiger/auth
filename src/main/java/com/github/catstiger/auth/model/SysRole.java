@@ -15,7 +15,7 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
 @Entity
-@Table(name = "sys_user")
+@Table(name = "sys_role")
 @ToString @EqualsAndHashCode(callSuper = true)
 @Data
 public class SysRole extends AbstractModel {

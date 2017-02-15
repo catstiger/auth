@@ -9,6 +9,7 @@ import javax.persistence.JoinColumn;
 import javax.persistence.ManyToMany;
 import javax.persistence.Table;
 
+import com.github.catstiger.core.db.annotation.Index;
 import com.github.catstiger.core.model.AbstractModel;
 
 import lombok.Data;
@@ -23,10 +24,19 @@ public class UserApp extends AbstractModel {
   @Column(nullable = false)
   private String name;
   
+  @Index
+  private Boolean isAvailable = true;
+  
+  @Column(length = 32, nullable = false, unique = true)
+  @Index
+  private String appKey;
+  
+  @Column(length = 64, nullable = false)
+  private String appSecret;
+  
   @Column(length = 500)
   private String descn;
   
-  private Boolean isAvailable = true;
   
   @JoinColumn(name = "owner_id")
   private SysUser owner;

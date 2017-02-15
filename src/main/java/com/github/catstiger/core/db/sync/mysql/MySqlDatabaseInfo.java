@@ -1,4 +1,4 @@
-package com.github.catstiger.core.db.mysql;
+package com.github.catstiger.core.db.sync.mysql;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -15,7 +15,7 @@ import org.springframework.jdbc.core.ColumnMapRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
-import com.github.catstiger.core.db.DatabaseInfo;
+import com.github.catstiger.core.db.sync.DatabaseInfo;
 import com.github.catstiger.utils.StringUtils;
 import com.google.common.base.Joiner;
 

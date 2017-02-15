@@ -1,4 +1,4 @@
-package com.github.catstiger.core.db.mysql;
+package com.github.catstiger.core.db.sync.mysql;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -13,10 +13,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.util.ReflectionUtils;
 
-import com.github.catstiger.core.db.DatabaseInfo;
-import com.github.catstiger.core.db.IndexCreator;
-import com.github.catstiger.core.db.ORMHelper;
 import com.github.catstiger.core.db.annotation.Index;
+import com.github.catstiger.core.db.sync.DatabaseInfo;
+import com.github.catstiger.core.db.sync.IndexCreator;
+import com.github.catstiger.core.db.sync.ORMHelper;
 import com.github.catstiger.utils.StringUtils;
 import com.google.common.base.Joiner;
 

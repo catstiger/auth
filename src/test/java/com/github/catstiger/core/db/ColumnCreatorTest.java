@@ -7,6 +7,7 @@ import org.springframework.util.Assert;
 
 import com.github.catstiger.core.BaseSpringTest;
 import com.github.catstiger.core.db.model.TestDbModel;
+import com.github.catstiger.core.db.sync.ColumnCreator;
 
 public class ColumnCreatorTest extends BaseSpringTest {
   @Resource
