@@ -1,4 +1,4 @@
-package com.github.catstiger.auth.admin;
+package com.github.catstiger.auth.web;
 
 import com.github.catstiger.mvc.annotation.API;
 import com.github.catstiger.mvc.annotation.Domain;

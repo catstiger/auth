@@ -298,6 +298,11 @@ a:focus {
   font-weight: 300;
   overflow: hidden;
 }
+
+.logo img {
+	height:50px;
+}
+
 .main-header .logo .logo-lg {
   display: block;
 }

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+  	    <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
+  	    <title>${title!'LIKESOSO 账号中心'}</title>
+  	    <%include("/inc/simple.meta.html"){}%>
+	</head>
+</html>
+<body class="hold-transition skin-red sidebar-mini">
+<div class="wrapper">
+    <header class="main-header">
+	    <!-- Logo -->
+	    <a href="index.html" class="logo">
+	      <img src="/statics/images/logo-notxt-50.jpg">
+	    </a>
+	    <!-- Header Navbar: style can be found in header.less -->
+	    <nav class="navbar navbar-static-top">
+	        <div class="navbar-custom-menu">
+	            <ul class="nav navbar-nav">
+	         
+	          
+	            </ul>
+	        </div>
+	    </nav>
+    </header>
+    
+${layoutContent!''}
+
+  <footer class="main-footer" style="margin-left:0px;">
+    <div class="pull-right hidden-xs">
+      <b>Version</b> 0.1.0
+    </div>
+    <strong>Copyright &copy; 2014-2017 <a href="http://www.likkesoso.com/auth">Cat's Tiger studio</a>.</strong> All rights
+    reserved.
+  </footer>
+</div>
+
+<%
+include("/inc/simple.js.html"){}
+%>
+</body>
+</html>

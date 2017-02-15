@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+  	    <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
+  	    <title>${title!'认证中心'}</title>
+  	    <%include("/inc/admin.meta.html"){}%>
+	</head>
+</html>
+<body class="hold-transition skin-red sidebar-mini">
+<div class="wrapper">
+<%
+include("/inc/admin.header.html"){}
+include("/inc/admin.menu.html"){}
+%>
+${layoutContent!''}
+<%
+include("/inc/admin.footer.html"){}
+%>
+</div>
+
+<%
+include("/inc/admin.js.html"){}
+%>
+</body>
+</html>
