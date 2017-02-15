@@ -10,7 +10,7 @@ import javax.persistence.Table;
 
 import org.beetl.sql.core.annotatoin.AutoID;
 
-import com.github.catstiger.core.db.annotation.SyncIgnore;
+import com.github.catstiger.core.db.sync.annotation.SyncIgnore;
 
 @Entity
 @Table(name = "test_many_to_many_model")

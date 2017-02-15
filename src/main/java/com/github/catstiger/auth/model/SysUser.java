@@ -9,7 +9,7 @@ import javax.persistence.Entity;
 import javax.persistence.ManyToMany;
 import javax.persistence.Table;
 
-import com.github.catstiger.core.db.annotation.Index;
+import com.github.catstiger.core.db.sync.annotation.Index;
 import com.github.catstiger.core.model.AbstractModel;
 
 import lombok.Data;
