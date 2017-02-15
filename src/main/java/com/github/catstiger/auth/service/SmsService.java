@@ -6,7 +6,7 @@ import com.github.catstiger.auth.model.SmsRecord;
  * @author leesam
  *
  */
-public interface ShortMessageService {
+public interface SmsService {
   /**
    * 向某个手机发送一条验证短信
    * @param mobile 手机

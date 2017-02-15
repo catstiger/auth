@@ -251,9 +251,9 @@
 		<dependency>
 		    <groupId>mysql</groupId>
 		    <artifactId>mysql-connector-java</artifactId>
-		    <version>6.0.5</version>
-		    <scope>test</scope>
+		    <version>5.1.40</version>
 		</dependency>
+
 		<!-- 阿里大于短信所需类库- taobaoSdkJava -->
 		<dependency>
 			<groupId>taobao</groupId>

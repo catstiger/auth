@@ -51,8 +51,7 @@
 		<property name="dataSource" ref="dataSource" />
 	</bean>
 
-	<tx:annotation-driven transaction-manager="txManager"
-		proxy-target-class="true" />
+	<tx:annotation-driven transaction-manager="txManager" proxy-target-class="true" />
 
 	<bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
 		<property name="dataSource" ref="dataSource" />
@@ -87,6 +86,15 @@
 			<list>
 				<bean class="org.beetl.sql.ext.DebugInterceptor"></bean>
 			</list>
+		</property>
+		<property name="idAutoGens">
+		    <map>
+		        <entry key="workers">
+		            <bean class="com.github.catstiger.core.db.id.IDAutoGenFactoryBean">
+		                <property name="datacenterId" value="0" />
+		            </bean>
+		        </entry>
+		    </map>
 		</property>
 	</bean>
 

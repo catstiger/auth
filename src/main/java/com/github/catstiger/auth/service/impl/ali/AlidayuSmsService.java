@@ -9,7 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import com.github.catstiger.auth.model.SmsRecord;
-import com.github.catstiger.auth.service.ShortMessageService;
+import com.github.catstiger.auth.service.SmsService;
 import com.github.catstiger.auth.service.SmsSender;
 import com.github.catstiger.mvc.annotation.API;
 import com.github.catstiger.mvc.annotation.Domain;
@@ -19,7 +19,7 @@ import com.github.catstiger.utils.StringUtils;
 
 @Service
 @Domain("/sms")
-public class AlidayuShortMessageService implements ShortMessageService {
+public class AlidayuSmsService implements SmsService {
   
   @Value("${alidayu.sign}")
   private String sign;

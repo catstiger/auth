@@ -4,12 +4,12 @@ import javax.annotation.Resource;
 
 import org.junit.Test;
 
-import com.github.catstiger.auth.service.impl.ali.AlidayuShortMessageService;
+import com.github.catstiger.auth.service.impl.ali.AlidayuSmsService;
 import com.github.catstiger.auth.test.SpringTestCase;
 
-public class AlidayuShortMessageServiceTest extends SpringTestCase {
+public class AlidayuSmsServiceTest extends SpringTestCase {
   @Resource
-  private AlidayuShortMessageService svr;
+  private AlidayuSmsService svr;
   
   @Test
   public void testSendVerify() {

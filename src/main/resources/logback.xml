@@ -20,6 +20,7 @@
 
 	<logger name="org.apache.jsp" level="INFO" />
 	<logger name="org.apache" level="WARN" />
+	<logger name="org.redisson" level="INFO"/>
 	<logger name="org.springframework" level="WARN" />
 	<logger name="org.apache.catalina" level="WARN" />
 	<logger name="com.github.catstiger" level="DEBUG" />

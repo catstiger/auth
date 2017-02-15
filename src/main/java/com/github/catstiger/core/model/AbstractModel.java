@@ -6,11 +6,13 @@ import javax.persistence.Id;
 
 import org.beetl.sql.core.annotatoin.AssignID;
 
+import com.github.catstiger.core.db.id.IDAutoGenFactoryBean;
+
 public abstract class AbstractModel implements Serializable {
   protected Long id;
 
   @Id
-  @AssignID("workers")
+  @AssignID(IDAutoGenFactoryBean.ID_GENERATOR_NAME)
   public Long getId() {
     return id;
   }
