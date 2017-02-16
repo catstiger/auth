@@ -1,3 +1,15 @@
+makeUnavailable
+===
+* 将发送给某个手机的验证短信，全部设置为失效
+    
+    update sms_record set is_available=false where type='verify' and mobile=#mobile#
+
+lastAvailable
+===
+* 返回最后一个有效的验证短信
+
+   select #use("cols")# from sms_record where is_available=true and type='verify' and mobile=#mobile# order by send_time desc limit 1
+
 sample
 ===
 * 注释

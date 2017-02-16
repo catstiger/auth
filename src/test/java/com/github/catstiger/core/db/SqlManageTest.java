@@ -20,7 +20,7 @@ public class SqlManageTest extends SpringTestCase {
   @Test
   public void testGenFile() {
     try {
-      sqlMgr.genSQLFile("sms_record");
+      sqlMgr.genSQLFile("verify_code");
     } catch (Exception e) {
       e.printStackTrace();
     }

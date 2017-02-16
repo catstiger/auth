@@ -40,7 +40,7 @@ public class AlidayuSmsSender implements SmsSender {
   
   @Override
   @Transactional
-  public SmsRecord send(String mobile, String template, String title, Map<String, Object> params) {
+  public SmsRecord send(String mobile, String template, String title, Map<String, Object> params, String type) {
     TaobaoClient client = new DefaultTaobaoClient(url, appKey, appSecret);
     //准备发送短信请求对象
     AlibabaAliqinFcSmsNumSendRequest req = new AlibabaAliqinFcSmsNumSendRequest();
@@ -55,8 +55,12 @@ public class AlidayuSmsSender implements SmsSender {
       req.setSmsParamString(smsParam);
     }
     req.setSmsTemplateCode(template);
+    //将所有验证短信设置为失效
+    smsRecDao.makeUnavailable(mobile);
     //创建短信记录
     SmsRecord smsRec = new SmsRecord();
+    smsRec.setType(type);
+    smsRec.setMobile(mobile);
     SysUser sender = sysUserDao.byMobile(mobile);
     if(sender != null) {
       smsRec.setUserId(sender.getId());
