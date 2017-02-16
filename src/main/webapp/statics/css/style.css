@@ -9,3 +9,30 @@
 .input-group {
   margin-bottom:10px;	
 }
+
+label.valid {
+  padding:10px;
+  width: 24px;
+  height: 24px;
+  background: url(../images/valid_16.png) no-repeat !important;
+  display: inline-block;
+  text-indent: -9999px;
+}
+
+label.error {
+  background: url(../images/invalid_16.png) no-repeat; 
+  font-weight: normal;
+  color: red;
+  
+  padding: 2px 20px;
+  margin-left:5px;
+  display: inline-block;
+}
+
+.error-container {
+	display: none;
+}
+
+div.error {
+	padding:5px;
+}

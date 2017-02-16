@@ -1,48 +1,83 @@
 <%
 layout("/layout/simple.layout.html", {title : '来客开放平台-用户注册'}) { 
 %>
+<form id="reg-form" action="/sys_user_service/register" method="post">
+	<div class="row" style="padding-bottom:100px;padding-top:50px;">
+	  <div class="col-md-3 hidden-xs hidden-sm"></div>
+	  <div class="col-md-6 col-xs-12">
+	      <h3 style="margin-bottom:20px;">注册账号</h3>
+	      <div class="alert alert-danger error-container" role="alert">
+	          <button type="button" class="close" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+		  </div>
+		  <div class="input-group">
+			  <span class="input-group-addon" ><i class="fa fa-fw fa-user"></i></span>
+			  <input type="text" class="form-control" name="username" data-label="用户名" placeholder="用户名，中文、英文、数字或者下划线，8~30字符" autocomplete="off">
+		  </div>
+		  <div class="input-group">
+			  <span class="input-group-addon"><i class="fa fa-fw fa-key"></i></span>
+			  <input type="text" class="form-control" name="password" data-label="密码" placeholder="密码，大于8字符，区分大小写" onfocus="this.type='password'" autocomplete="off">
+		  </div>
+		  <div class="input-group">
+			  <span class="input-group-addon" ><i class="fa fa-fw fa-mobile"></i></span>
+			  <input type="text" class="form-control" name="mobile" data-label="手机" placeholder="手机，用于接收验证码">
+			  <span class="input-group-btn">
+		        <button class="btn btn-default" type="button" id="点击获取验证码">点击获取验证码</button>
+		      </span>
+		  </div>
+		  <div class="input-group">
+			  <span class="input-group-addon"><i class="fa fa-fw  fa-ellipsis-h"></i></span>
+			  <input type="text" class="form-control" name="captcha" data-label="验证码" placeholder="请输入短信验证码">
+		  </div>
+		  
+		  <div class="input-group">
+			  <span class="input-group-addon" ><i class="fa fa-fw fa-apple"></i></span>
+			  <input type="text" class="form-control" name="company" data-label="所在公司" placeholder="请输入您所在公司名">
+		  </div>
+		  
+		  <div class="row">
+		     <div class="col-md-4 hidden-xs hidden-sm">
+		          <a href="/login.html" class="btn btn-default " style="width:100%;">登录</a>
+		     </div>
+		     <div class="col-md-8">
+		          <button type="submit" class="btn btn-primary" style="width:100%;">注册</button>
+		     </div>
+		  </div>
+	  </div>
+	  <div class="col-md-3 hidden-xs hidden-sm"></div>
+	</div>
+</form>
 
-<div class="row" style="padding-bottom:100px;padding-top:50px;">
-  <div class="col-md-3 hidden-xs hidden-sm"></div>
-  <div class="col-md-6 col-xs-12">
-      <h3 style="margin-bottom:20px;">注册账号</h3>
-	  <div class="input-group">
-		  <span class="input-group-addon" ><i class="fa fa-fw fa-user"></i></span>
-		  <input type="text" class="form-control" placeholder="用户名，中文、英文、数字或者下划线">
-	  </div>
-	  <div class="input-group">
-		  <span class="input-group-addon" ><i class="fa fa-fw fa-mobile"></i></span>
-		  <input type="text" class="form-control" placeholder="手机，用于接收验证码">
-		  <span class="input-group-btn">
-	        <button class="btn btn-default" type="button" id="点击获取验证码">点击获取验证码</button>
-	      </span>
-	  </div>
-	  <div class="input-group">
-		  <span class="input-group-addon"><i class="fa fa-fw  fa-ellipsis-h"></i></span>
-		  <input type="text" class="form-control" placeholder="请输入短信验证码">
-	  </div>
-	  <div class="input-group">
-		  <span class="input-group-addon"><i class="fa fa-fw fa-key"></i></span>
-		  <input type="text" class="form-control" placeholder="密码，大于8字符，区分大小写">
-	  </div>
-	  <div class="input-group">
-		  <span class="input-group-addon" ><i class="fa fa-fw fa-apple"></i></span>
-		  <input type="text" class="form-control" placeholder="请输入您所在公司名">
-	  </div>
-	  
-	  <div class="row">
-	     <div class="col-md-4">
-	          <a href="/login.html" class="btn btn-default" style="width:100%;">登录</a>
-	     </div>
-	     <div class="col-md-8">
-	          <button type="button" class="btn btn-primary" style="width:100%;">注册</button>
-	     </div>
-	  </div>
+<script>
+$(function() {
+  $('#reg-form').validate({
+	  //验证规则
+	  rules: {
+          username: {
+            minlength: 6,
+            maxlength: 50,
+            required: true
+          }, 
+          mobile: {
+        	mobile: true,
+        	required: true
+          },
+          password: {
+            required: true
+          }
+	  },
+	  //验证错误消息
+	  messages : {
+          mobile : {
+            mobile : "号码格式错误。"
+          }
+	  }
   
-  </div>
-  <div class="col-md-3 hidden-xs hidden-sm"></div>
-</div>
-
+  });
+  $('#reg-form').ajaxForm({
+	  
+  });
+});
+</script>
 <%
 }
 %>
