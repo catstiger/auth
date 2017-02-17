@@ -3,6 +3,12 @@ byMobile
 * 根据手机号码查询用户
 
     select #use("cols")# from sys_user where mobile=#mobile#
+    
+mobileExists
+===
+*  手机号是否存在
+   select count(*) from sys_user where mobile=#mobile# and id <> #id#
+
 
 sample
 ===

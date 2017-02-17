@@ -12,4 +12,11 @@ public interface SysUserDao extends BaseMapper<SysUser> {
    * @return Instance of SysUser
    */
   public SysUser byMobile(@Param("mobile") String mobile);
+  
+  /**
+   * 手机号是否存在
+   * @param mobile 手机号
+   * @param id ID，排除此ID的用户
+   */
+  public SysUser mobileExists(@Param("mobile") String mobile, @Param("id") Long id);
 }
