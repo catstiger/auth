@@ -4,11 +4,15 @@ byMobile
 
     select #use("cols")# from sys_user where mobile=#mobile#
     
-mobileExists
+mobileCount
 ===
 *  手机号是否存在
    select count(*) from sys_user where mobile=#mobile# and id <> #id#
 
+usernameCount
+===
+*  用户名是否存在
+   select count(*) from sys_user where username=#username# and id <> #id#
 
 sample
 ===

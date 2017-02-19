@@ -21,7 +21,7 @@ layout("/layout/simple.layout.html", {title : '来客开放平台-用户注册'}
 			  <span class="input-group-addon" ><i class="fa fa-fw fa-mobile"></i></span>
 			  <input type="text" class="form-control" name="mobile" data-label="手机" placeholder="手机，用于接收验证码">
 			  <span class="input-group-btn">
-		        <button class="btn btn-default" type="button" id="点击获取验证码">点击获取验证码</button>
+		        <button class="btn btn-default" type="button" id="btn-get-captcha" data-loading-text="60秒后可重新发送">点击获取验证码</button>
 		      </span>
 		  </div>
 		  <div class="input-group">
@@ -54,27 +54,103 @@ $(function() {
 	  rules: {
           username: {
             minlength: 6,
-            maxlength: 50,
-            required: true
+            maxlength: 32,
+            required: true,
+            remote : {
+                url : '/sys_user/is_username_not_exists',
+                type : 'post',
+                data : {
+                  username : function() {
+                    return $('input[name=username]').val();
+                  }
+                }
+            }
           }, 
           mobile: {
         	mobile: true,
-        	required: true
+        	required: true,
+        	remote : {
+                url : '/sys_user/is_mobile_not_exists',
+                type : 'post',
+                data : {
+                  username : function() {
+                    return $('input[name=mobile]').val();
+                  }
+                }
+            }
           },
           password: {
-            required: true
+            required: true,
+            minlength: 6,
+            maxlength: 20
+          },
+          captcha: {
+        	  required: true,
+        	  remote : {
+                  url : '/sms/is_correct.txt',
+                  data: {
+                	mobile: $('input[name=mobile]').val(),
+                	code: $('input[name=captcha]').val()
+                  },
+                  type : 'post'
+              }
           }
 	  },
 	  //验证错误消息
 	  messages : {
+		  username: {
+			remote: '已经存在'  
+		  },
           mobile : {
-            mobile : "号码格式错误。"
+            mobile : "号码格式错误。",
+            remote: '号码已经存在。'
+          },
+          captcha: {
+        	  remote: '错误'
           }
 	  }
   
   });
   $('#reg-form').ajaxForm({
 	  
+  });
+  
+  //发送验证码
+  $('#btn-get-captcha').click(function() {
+	  var this_ = $(this);
+	  var mobile = $('input[name=mobile]').val();
+	  console.log(mobile)
+	  var pattern = /^(((13[0-9]{1})|(15[0-9]{1})|(18[0-9]{1}))+\d{8})$/;
+	  if(!mobile || mobile.length != 11 || !pattern.test(mobile)) {
+		  alert('手机号格式错误。')
+		  return;
+	  }
+	  $.ajax({
+		  url: '/sms/send_verify_code?mobile=' + mobile, //sendVerifyCode
+	      type: 'get',
+	      dataType: 'json',
+	      success: function(data) {
+	    	  //console.log(data);
+	    	  if(data && data.sendSuccess) {
+	    		  this_.button('loading');
+	    		  var sec = 60;
+	    		  var internal = window.setInterval(function() {
+	    			  sec--;
+	    			  this_.html(sec + '秒后可重新发送');
+	    			  if(sec == 1) {
+	    				  this_.button('reset');
+	    				  window.clearInterval(internal);
+	    			  }
+	    		  }, 1000)
+	    	  } else {
+	    		  alert(data.errMsg);
+	    	  }
+	      },
+	      error: function() {
+	    	  console.log(arguments);
+	    	  alert('发送失败！请稍后重试。')
+	      }
+	  })
   });
 });
 </script>

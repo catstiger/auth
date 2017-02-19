@@ -14,9 +14,16 @@ public interface SysUserDao extends BaseMapper<SysUser> {
   public SysUser byMobile(@Param("mobile") String mobile);
   
   /**
-   * 手机号是否存在
+   * 使用这个Mobile的用户的数量
    * @param mobile 手机号
    * @param id ID，排除此ID的用户
    */
-  public SysUser mobileExists(@Param("mobile") String mobile, @Param("id") Long id);
+  public Long mobileCount(@Param("mobile") String mobile, @Param("id") Long id);
+  
+  /**
+   * 采用此用户名的人数量，用于判断用户名是否重复
+   * @param username 给出用户名
+   * @param id ID，排除此ID，用于修改的时候
+   */
+  public Long usernameCount(@Param("username") String username, @Param("id") Long id);
 }

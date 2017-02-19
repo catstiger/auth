@@ -19,7 +19,7 @@ $(function() {
     		}
     		var labels = [];
     		if(!this.errorList || this.errorList.length == 0) {
-    			errorContainer.hide('fast');
+    			errorContainer.hide();
     			return;
     		}
     		for (var i = 0; this.errorList[i]; i++ ) {
@@ -48,6 +48,5 @@ $(function() {
     		
     	}
     }
-}
-    
-)();
+	
+})();

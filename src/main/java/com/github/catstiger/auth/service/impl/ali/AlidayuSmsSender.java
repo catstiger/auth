@@ -85,7 +85,7 @@ public class AlidayuSmsSender implements SmsSender {
       smsRec.setReturnCode(e.getErrCode());
       smsRec.setSendSuccess(false);
       smsRec.setBody(e.getErrMsg());
-      throw Exceptions.readable("短信发送失败！");
+      throw Exceptions.readable("短信发送失败！" + e.getErrCode() + e.getErrMsg());
     }
     smsRecDao.insertTemplate(smsRec);
     return smsRec;
