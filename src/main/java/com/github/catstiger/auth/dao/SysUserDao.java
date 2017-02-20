@@ -1,29 +1,76 @@
 package com.github.catstiger.auth.dao;
 
-import org.beetl.sql.core.annotatoin.Param;
-import org.beetl.sql.core.mapper.BaseMapper;
+import java.util.List;
+
+import javax.annotation.Resource;
+
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.github.catstiger.auth.model.SysUser;
+import com.github.catstiger.core.db.SQLFactory;
+import com.github.catstiger.core.db.SQLFactory.SQLReady;
+import com.github.catstiger.core.db.id.IdGen;
+import com.github.catstiger.core.db.mapper.BeanRowMapper;
 
-public interface SysUserDao extends BaseMapper<SysUser> {
+import lombok.extern.slf4j.Slf4j;
+import reactor.core.support.Assert;
+
+@Repository @Slf4j
+public class SysUserDao {
+  @Resource
+  private JdbcTemplate jdbcTemplate;
+  @Resource
+  private IdGen idGen;
   /**
    * 根据Mobile，查询单个SysUser对象，如果没有，返回 <code>null</code>
    * @param mobile 给定手机号码
    * @return Instance of SysUser
    */
-  public SysUser byMobile(@Param("mobile") String mobile);
+  public SysUser byMobile(String mobile) {
+    String sql = new StringBuilder(SQLFactory.getInstance().select(SysUser.class, true))
+        .append(" WHERE mobile=? limit 1").toString();
+    log.debug("SysUserDao.byMobile: {}", sql);
+    List<SysUser> users = jdbcTemplate.query(sql, new Object[]{mobile}, new BeanRowMapper<SysUser>(SysUser.class));
+    
+    return (users == null || users.isEmpty()) ? null : users.get(0);
+  }
   
   /**
    * 使用这个Mobile的用户的数量
    * @param mobile 手机号
    * @param id ID，排除此ID的用户
    */
-  public Long mobileCount(@Param("mobile") String mobile, @Param("id") Long id);
+  public Long mobileCount(String mobile, Long id) {
+    Assert.notNull(mobile, "手机号不可为空。");
+    if(id == null) {
+      id = -1L;
+    }
+    
+    return jdbcTemplate.queryForObject("select count(*) from sys_user where mobile=? and id<>?", Long.class, mobile, id);
+  }
   
   /**
    * 采用此用户名的人数量，用于判断用户名是否重复
    * @param username 给出用户名
    * @param id ID，排除此ID，用于修改的时候
    */
-  public Long usernameCount(@Param("username") String username, @Param("id") Long id);
+  public Long usernameCount(String username, Long id) {
+    Assert.notNull(username, "用户名不可为空。");
+    if(id == null) {
+      id = -1L;
+    }
+    
+    return jdbcTemplate.queryForObject("select count(*) from sys_user where username=? and id<>?", Long.class, username, id);
+  }
+  
+  @Transactional
+  public SysUser insert(SysUser entity) {
+    entity.setId(idGen.nextId());
+    SQLReady sqlReady = SQLFactory.getInstance().insert(entity, false);
+    jdbcTemplate.update(sqlReady.getSql(), sqlReady.getArgs());
+    
+    return entity;
+  }
 }

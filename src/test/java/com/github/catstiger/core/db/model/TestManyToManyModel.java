@@ -8,8 +8,7 @@ import javax.persistence.Id;
 import javax.persistence.ManyToMany;
 import javax.persistence.Table;
 
-import org.beetl.sql.core.annotatoin.AutoID;
-
+import com.github.catstiger.core.db.sync.annotation.AutoId;
 import com.github.catstiger.core.db.sync.annotation.SyncIgnore;
 
 @Entity
@@ -20,7 +19,7 @@ public class TestManyToManyModel {
   private String name;
   private List<TestDbModel> testDbs = new ArrayList<>();
   
-  @Id @AutoID
+  @Id @AutoId
   public Long getId() {
     return id;
   }

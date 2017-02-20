@@ -8,7 +8,7 @@ import javax.persistence.Entity;
 import javax.persistence.ManyToMany;
 import javax.persistence.Table;
 
-import com.github.catstiger.core.model.AbstractModel;
+import com.github.catstiger.core.entity.BaseEntity;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -18,7 +18,7 @@ import lombok.ToString;
 @Table(name = "sys_role")
 @ToString @EqualsAndHashCode(callSuper = true)
 @Data
-public class SysRole extends AbstractModel {
+public class SysRole extends BaseEntity {
   @Column(nullable = false, unique = true)
   private String name;
   private String descn;

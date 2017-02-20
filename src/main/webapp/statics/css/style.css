@@ -10,24 +10,30 @@
   margin-bottom:10px;	
 }
 
-label.valid {
-  padding:10px;
-  width: 24px;
-  height: 24px;
-  background: url(../images/valid_16.png) no-repeat !important;
-  display: inline-block;
-  text-indent: -9999px;
+input.valid {
+  background: url(../images/ok-16.png) right no-repeat !important;
 }
 
-label.error {
-  background: url(../images/invalid_16.png) no-repeat; 
-  font-weight: normal;
-  color: red;
-  
-  padding: 2px 20px;
-  margin-left:5px;
-  display: inline-block;
+input.error {
+  background: url(../images/error-16.png) right no-repeat !important;
 }
+
+
+label.error {
+    font-weight: normal;
+    color: red;
+    display: inline-block;
+    margin: 0;
+    padding-left: 5px;
+    
+    height: 34px;
+    line-height: 34px;
+    width: 100%;
+    color: #a94442;
+    background-color: #f2dede;
+    border: 1px solid;
+    border-top: 0px;
+    border-color: #ebccd1;
 
 .error-container {
 	display: none;

@@ -58,13 +58,10 @@ public abstract class ORMHelper {
     }
     
     Table table = entityClass.getAnnotation(Table.class);
-    org.beetl.sql.core.annotatoin.Table beetlTable = entityClass.getAnnotation(org.beetl.sql.core.annotatoin.Table.class);
     String tablename;
     
     if(table != null && StringUtils.isNotBlank(table.name())) {
       tablename = table.name();
-    } else if (beetlTable != null && StringUtils.isNotBlank(beetlTable.name())) {
-      tablename = beetlTable.name();
     } else {
       tablename = StringUtils.toSnakeCase(entityClass.getSimpleName());
     }

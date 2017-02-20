@@ -10,7 +10,7 @@ import javax.persistence.ManyToMany;
 import javax.persistence.Table;
 
 import com.github.catstiger.core.db.sync.annotation.Index;
-import com.github.catstiger.core.model.AbstractModel;
+import com.github.catstiger.core.entity.BaseEntity;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -20,7 +20,7 @@ import lombok.ToString;
 @Table(name = "user_app")
 @ToString @EqualsAndHashCode(callSuper = true)
 @Data
-public class UserApp extends AbstractModel {
+public class UserApp extends BaseEntity {
   @Column(nullable = false)
   private String name;
   

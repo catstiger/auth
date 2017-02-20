@@ -56,48 +56,7 @@
 	<bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
 		<property name="dataSource" ref="dataSource" />
 	</bean>
-
-	<bean name="beetlSqlScannerConfigurer" class="org.beetl.sql.ext.spring4.BeetlSqlScannerConfigurer">
-		<!-- 哪些类可以自动注入 -->
-		<property name="basePackage" value="com.github.catstiger.auth.dao" />
-		<!-- 通过类后缀 来自动注入Dao -->
-		<property name="daoSuffix" value="Dao" />
-		<property name="sqlManagerFactoryBeanName" value="sqlManagerFactoryBean" />
-	</bean>
 	
-	<bean id="sqlManagerFactoryBean" class="org.beetl.sql.ext.spring4.SqlManagerFactoryBean">
-		<property name="cs">
-			<bean class="org.beetl.sql.ext.spring4.BeetlSqlDataSource">
-				<property name="masterSource" ref="dataSource"></property>
-			</bean>
-		</property>
-		<property name="dbStyle">
-			<bean class="org.beetl.sql.core.db.MySqlStyle" />
-		</property>
-		<property name="sqlLoader">
-			<bean class="org.beetl.sql.core.ClasspathLoader">
-				<property name="sqlRoot" value="/sql"></property>
-			</bean>
-		</property>
-		<property name="nc">
-			<bean class="org.beetl.sql.core.UnderlinedNameConversion" />
-		</property>
-		<property name="interceptors">
-			<list>
-				<bean class="org.beetl.sql.ext.DebugInterceptor"></bean>
-			</list>
-		</property>
-		<property name="idAutoGens">
-		    <map>
-		        <entry key="workers">
-		            <bean class="com.github.catstiger.core.db.id.IDAutoGenFactoryBean">
-		                <property name="datacenterId" value="0" />
-		            </bean>
-		        </entry>
-		    </map>
-		</property>
-	</bean>
-
 	<task:annotation-driven proxy-target-class="true" />
 
 	<!-- Redis -->

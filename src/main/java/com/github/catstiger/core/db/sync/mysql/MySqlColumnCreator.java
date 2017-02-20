@@ -12,7 +12,6 @@ import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.Lob;
 
-import org.beetl.sql.core.annotatoin.AutoID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,6 +23,7 @@ import com.github.catstiger.core.db.sync.ColumnCreator;
 import com.github.catstiger.core.db.sync.DatabaseInfo;
 import com.github.catstiger.core.db.sync.IndexCreator;
 import com.github.catstiger.core.db.sync.ORMHelper;
+import com.github.catstiger.core.db.sync.annotation.AutoId;
 import com.github.catstiger.utils.StringUtils;
 
 import lombok.NonNull;
@@ -73,7 +73,7 @@ public class MySqlColumnCreator implements ColumnCreator {
     Column colAnn = getter.getAnnotation(Column.class); // Column标注
     JoinColumn joinColAnn = getter.getAnnotation(JoinColumn.class); //外键标注
     Lob lobAnn = getter.getAnnotation(Lob.class); //Lob标注
-    AutoID autoId = getter.getAnnotation(AutoID.class); //是否自增
+    AutoId autoId = getter.getAnnotation(AutoId.class); //是否自增
     Id id = getter.getAnnotation(Id.class); //是否主键
     Entity refEntityAnn = field.getType().getAnnotation(Entity.class); //外键
     

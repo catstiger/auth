@@ -6,7 +6,7 @@ import javax.persistence.Entity;
 import javax.persistence.Table;
 
 import com.github.catstiger.core.db.sync.annotation.Index;
-import com.github.catstiger.core.model.AbstractModel;
+import com.github.catstiger.core.entity.BaseEntity;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -15,7 +15,7 @@ import lombok.ToString;
 @Entity
 @Table(name = "sms_record")
 @Data @ToString @EqualsAndHashCode(callSuper = true)
-public class SmsRecord extends AbstractModel {
+public class SmsRecord extends BaseEntity {
   public static final String SHORT_MSG_VERIFY_CODE = "VERIFY_CODE";
   /**
    * 用户ID

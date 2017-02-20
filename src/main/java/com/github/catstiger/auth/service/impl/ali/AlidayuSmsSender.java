@@ -34,9 +34,10 @@ public class AlidayuSmsSender implements SmsSender {
   private String appSecret;
   
   @Resource
-  private SysUserDao sysUserDao;
-  @Resource
   private SmsRecordDao smsRecDao;
+  
+  @Resource
+  private SysUserDao sysUserDao;
   
   @Override
   @Transactional
@@ -87,8 +88,7 @@ public class AlidayuSmsSender implements SmsSender {
       smsRec.setBody(e.getErrMsg());
       throw Exceptions.readable("短信发送失败！" + e.getErrCode() + e.getErrMsg());
     }
-    smsRecDao.insertTemplate(smsRec);
-    return smsRec;
+    return smsRecDao.insert(smsRec);
   }
 
 }

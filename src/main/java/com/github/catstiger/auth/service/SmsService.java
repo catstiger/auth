@@ -88,12 +88,7 @@ public class SmsService {
     RMapCache<Object, Object> cache = redis.getMapCache(VERIFY_CODE_CACHE_NAME);
     Object verifyCode = cache.get(mobile);
     
-    boolean isCorrect = code.equals(verifyCode);
-    if(isCorrect) {
-      cache.remove(mobile);
-    } 
-    
-    return isCorrect;
+    return code.equals(verifyCode);
   }
 
   /**

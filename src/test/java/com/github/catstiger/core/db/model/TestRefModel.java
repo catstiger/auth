@@ -7,8 +7,7 @@ import javax.persistence.Lob;
 import javax.persistence.Table;
 import javax.persistence.Transient;
 
-import org.beetl.sql.core.annotatoin.AutoID;
-
+import com.github.catstiger.core.db.sync.annotation.AutoId;
 import com.github.catstiger.core.db.sync.annotation.Index;
 import com.github.catstiger.core.db.sync.annotation.SyncIgnore;
 
@@ -23,7 +22,7 @@ public class TestRefModel {
   private String ig;
   
   
-  @Id @AutoID
+  @Id @AutoId
   public Long getId() {
     return id;
   }

@@ -2,18 +2,14 @@ package com.github.catstiger.core.db.id;
 
 import javax.annotation.Resource;
 
-import org.beetl.sql.core.IDAutoGen;
-import org.beetl.sql.ext.SnowflakeIDWorker;
 import org.redisson.api.RQueue;
 import org.redisson.api.RedissonClient;
-import org.springframework.beans.factory.FactoryBean;
+import org.springframework.stereotype.Component;
 
 import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
-public class IDAutoGenFactoryBean implements FactoryBean<IDAutoGen<Long>> {
-  public static final String ID_GENERATOR_NAME = "workers";
-  
+@Component @Slf4j
+public class SnowflakeIdGen implements IdGen {
   @Resource
   private RedissonClient redis;
   
@@ -21,29 +17,16 @@ public class IDAutoGenFactoryBean implements FactoryBean<IDAutoGen<Long>> {
   //31
   private long maxWorkerId = -1L ^ (-1L << workerIdBits);
   private long datacenterId = 0L;
-
+  private SnowflakeIDWorker worker = null;
+  
+  
   @Override
-  public IDAutoGen<Long> getObject() throws Exception {
-    long workerId = getWorkderId(datacenterId);
-    
-    return new IDAutoGen<Long>() {
-      SnowflakeIDWorker worker = new SnowflakeIDWorker(workerId, datacenterId);
-      @Override
-      public Long nextID(String params) {
-        return worker.nextId();
-      }
-      
-    };
-  }
-
-  @Override
-  public Class<?> getObjectType() {
-    return IDAutoGen.class;
-  }
-
-  @Override
-  public boolean isSingleton() {
-    return true;
+  public Long nextId() {
+    if(worker == null) {
+      long workerId = getWorkderId(datacenterId);
+      worker = new SnowflakeIDWorker(workerId, datacenterId);
+    }
+    return worker.nextId();
   }
   
   private long getWorkderId(long datacenterId) {
@@ -64,5 +47,6 @@ public class IDAutoGenFactoryBean implements FactoryBean<IDAutoGen<Long>> {
   public void setDatacenterId(long datacenterId) {
     this.datacenterId = datacenterId;
   }
+
 
 }

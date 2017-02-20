@@ -12,7 +12,7 @@ import javax.persistence.Table;
 
 import com.github.catstiger.core.db.sync.annotation.Index;
 import com.github.catstiger.core.db.sync.annotation.SyncIgnore;
-import com.github.catstiger.core.model.AbstractModel;
+import com.github.catstiger.core.entity.BaseEntity;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -20,7 +20,7 @@ import lombok.Setter;
 @Entity
 @Table(name = "test_db_model")
 @SyncIgnore
-public class TestDbModel extends AbstractModel {
+public class TestDbModel extends BaseEntity {
 
   @Getter @Setter
   @Index

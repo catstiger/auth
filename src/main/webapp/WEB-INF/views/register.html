@@ -1,14 +1,12 @@
 <%
 layout("/layout/simple.layout.html", {title : '来客开放平台-用户注册'}) { 
 %>
-<form id="reg-form" action="/sys_user_service/register" method="post">
+<form id="reg-form" action="/sys_user/register" method="post">
 	<div class="row" style="padding-bottom:100px;padding-top:50px;">
 	  <div class="col-md-3 hidden-xs hidden-sm"></div>
 	  <div class="col-md-6 col-xs-12">
 	      <h3 style="margin-bottom:20px;">注册账号</h3>
-	      <div class="alert alert-danger error-container" role="alert">
-	          <button type="button" class="close" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-		  </div>
+	      
 		  <div class="input-group">
 			  <span class="input-group-addon" ><i class="fa fa-fw fa-user"></i></span>
 			  <input type="text" class="form-control" name="username" data-label="用户名" placeholder="用户名，中文、英文、数字或者下划线，8~30字符" autocomplete="off">
@@ -36,10 +34,10 @@ layout("/layout/simple.layout.html", {title : '来客开放平台-用户注册'}
 		  
 		  <div class="row">
 		     <div class="col-md-4 hidden-xs hidden-sm">
-		          <a href="/login.html" class="btn btn-default " style="width:100%;">登录</a>
+		          <a href="/login.html" class="btn btn-default" style="width:100%">登录</a>
 		     </div>
 		     <div class="col-md-8">
-		          <button type="submit" class="btn btn-primary" style="width:100%;">注册</button>
+		          <button type="submit" class="btn btn-primary" id="btn-submit" style="width:100%;">注册</button>
 		     </div>
 		  </div>
 	  </div>
@@ -87,13 +85,16 @@ $(function() {
           captcha: {
         	  required: true,
         	  remote : {
-                  url : '/sms/is_correct.txt',
-                  data: {
-                	mobile: $('input[name=mobile]').val(),
-                	code: $('input[name=captcha]').val()
-                  },
-                  type : 'post'
-              }
+                 url : '/sms/is_correct',
+                 data: {
+               	    mobile: function() {
+               	    	return $('input[name=mobile]').val();
+               	    },
+                 	code: function() {
+                 		return $('input[name=captcha]').val();
+                 	}
+                 }
+             }
           }
 	  },
 	  //验证错误消息
@@ -112,8 +113,30 @@ $(function() {
   
   });
   $('#reg-form').ajaxForm({
-	  
+	  dataType: 'json',
+	  type: 'post',
+	  url: '/sys_user/register.json',
+	  beforeSubmit : function() {
+          $('#btn-submit').button('loading');
+      },
+	  success: function(data) {
+		  console.log(data);
+		  $('#btn-submit').button('reset');
+		  if(data && data.id) {
+			  window.location.href = '/login.html'
+		  } else {
+			  if(data.msg) {
+				  alert(data.msg);
+			  }
+		  }
+	  },
+	  error: function() {
+		  console.log(arguments);
+		  $('#btn-submit').button('reset');
+		  alert('注册失败！')
+	  }
   });
+  
   
   //发送验证码
   $('#btn-get-captcha').click(function() {
