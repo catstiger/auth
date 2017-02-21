@@ -9,9 +9,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
-import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.JoinColumn;
 import javax.persistence.Table;
@@ -20,9 +18,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.RowMapper;
 
-import com.github.catstiger.utils.GenericsUtils;
+import com.github.catstiger.core.db.NamingStrategy;
+import com.github.catstiger.core.db.SQLFactory;
 import com.github.catstiger.utils.ReflectUtils;
-import com.github.catstiger.utils.StringUtils;
 /**
  * 一个{@link RowMapper}的实现类，可以将ResultSet中的数据装入一个JavaBean。他具有如下feature:
  * <ul>
@@ -45,27 +43,9 @@ public class BeanRowMapper<T> implements RowMapper<T> {
   
   private Class<T> beanClass;
   private Map<String, ColumnTypesIndex> columnIndexMap = new HashMap<String, ColumnTypesIndex>(20);
-  private static Map<Class<?>, String> beanTablename = new ConcurrentHashMap<Class<?>, String>();
   private RowHandler<T> rowHandler;
+  private NamingStrategy namingStrategy = SQLFactory.DEFAULT_NAME_STRATEGY;
 
-  /**
-   * 构造一个BeanRowMapper实例，使用泛型指出操作的Bean，不支持RowHandler。只能通过内部类构造：
-   * new BeanRowMapper<User>{};否则将无法得到泛型参数的类。
-   */
-  @SuppressWarnings("unchecked")
-  public BeanRowMapper() {
-    this.rowHandler = null;
-    this.beanClass = GenericsUtils.getGenericClassSupper(getClass());
-  }
-  /**
-   * 构造一个BeanRowMapper的实例，传入要处理的Bean的类型，和RowHandler的实例。
-   * @param beanClass 给出要处理的Bean的类型
-   * @param rowHandler RowHandler的实例，在处理完一条记录后，可以做更多的操作
-   */
-  public BeanRowMapper(Class<T> beanClass, RowHandler<T> rowHandler) {
-    this.beanClass = beanClass;
-    this.rowHandler = rowHandler;
-  }
   /**
    * 构造一个BeanRowMapper的实例，传入要处理的Bean的类型
    * @param beanClass 给出要处理的Bean的类型
@@ -74,14 +54,55 @@ public class BeanRowMapper<T> implements RowMapper<T> {
     this.beanClass = beanClass;
     this.rowHandler = null;
   }
+  
+  /**
+   * 构造一个BeanRowMapper的实例，传入要处理的Bean的类型
+   * @param beanClass 给出要处理的Bean的类型
+   */
+  public BeanRowMapper(Class<T> beanClass, NamingStrategy namingStrategy) {
+    this.beanClass = beanClass;
+    this.rowHandler = null;
+    this.namingStrategy = namingStrategy;
+  }
   /**
    * 构造一个BeanRowMapper的实例，使用泛型参数指出要处理的Bean的类型，指出RowHandler扩展点
    * @param rowHandler RowHandler的实例，在处理完一条记录后，可以做更多的操作 
+   * @param beanClass 对应的实体类
    */
-  @SuppressWarnings("unchecked")
-  public BeanRowMapper(RowHandler<T> rowHandler) {
-    this.beanClass = GenericsUtils.getGenericClassSupper(getClass());
+  public BeanRowMapper(Class<T> beanClass, RowHandler<T> rowHandler) {
+    this.beanClass = beanClass;
     this.rowHandler = rowHandler;
+  }
+  
+  public BeanRowMapper(Class<T> beanClass, RowHandler<T> rowHandler, NamingStrategy namingStrategy) {
+    this.beanClass = beanClass;
+    this.rowHandler = rowHandler;
+    this.namingStrategy = namingStrategy;
+  }
+  
+  /**
+   * 使用某种命名策略，缺省的，使用驼峰命名法
+   * @param namingStrategy NamingStrategy的实例
+   */
+  public BeanRowMapper<T> withNamingStrategy(NamingStrategy namingStrategy) {
+    this.namingStrategy = namingStrategy;
+    return this;
+  }
+  
+  /**
+   * 设置对应的实体类
+   */
+  public BeanRowMapper<T> withBeanClass(Class<T> beanClass) {
+    this.beanClass = beanClass;
+    return this;
+  }
+  
+  /**
+   * 设置RowHandler的实例，用于在处理完毕后执行更多的自定义操作。
+   */
+  public BeanRowMapper<T> withRowHandler(RowHandler<T> rowHandler) {
+    this.rowHandler = rowHandler;
+    return this;
   }
   
   
@@ -102,17 +123,10 @@ public class BeanRowMapper<T> implements RowMapper<T> {
        
         //所有可能的列名
         List<String> alias = new ArrayList<String>(3);
-        alias.add(tablename + "." + propertyDescriptor.getName());
-        alias.add(tablename + "." + StringUtils.toSnakeCase(propertyDescriptor.getName()));
-        Column column = propertyDescriptor.getReadMethod().getAnnotation(Column.class);
-        if(column != null) {
-          alias.add(tablename + "." + column.name());
-        }
+        //属性名或者属性名单词用下划线分割
+        alias.add(tablename + "." + namingStrategy.columnLabel(propertyDescriptor));
+        //作为外键的列名
         JoinColumn joinColumn = propertyDescriptor.getReadMethod().getAnnotation(JoinColumn.class);
-        if(joinColumn != null) {
-          alias.add(tablename + "." + joinColumn.name());
-          alias.add(tablename + "." + propertyDescriptor.getName() + "Id");
-        }
         //根据列名，找到columnIndex
         int columnIndex = 0;
         for(String col : alias) {
@@ -170,8 +184,8 @@ public class BeanRowMapper<T> implements RowMapper<T> {
   private Object writeCommonProperty(Object owner, PropertyDescriptor propertyDescriptor, ResultSet rs, int columnIndex) {
     Object value = null;
     try {
-      @SuppressWarnings("rawtypes")
-      ResultSetInvoker rsInvoker = ResultSetInvokerFactory.getRSInvoker(propertyDescriptor.getPropertyType());
+      
+      ResultSetInvoker<?> rsInvoker = ResultSetInvokerFactory.getRSInvoker(propertyDescriptor.getPropertyType());
       if(rsInvoker == null) {
         logger.warn("没有找到合适的RSInvoker实例 {}", propertyDescriptor.getPropertyType());
         return null;
@@ -188,24 +202,12 @@ public class BeanRowMapper<T> implements RowMapper<T> {
   }
   
   /**
-   * 根据类名获取表名，表名来自于javax.persistence.Table或者org.hibernate.annotaions.Table标注，如果没有标注，则取自简单类名小写。
+   * 根据类名获取表名，表名来自于javax.persistence.Table或者org.hibernate.annotaions.Table标注，如果没有标注，则取自简单类名小写下划线分割。
    * @param beanClass 给出对应的类
    * @return
    */
   private String getTablename(Class<?> beanClass) {
-    if(beanTablename.containsKey(beanClass)) {
-      return beanTablename.get(beanClass);
-    }
-    
-    String tablename = beanClass.getSimpleName().toLowerCase();
-    Table table = beanClass.getAnnotation(Table.class);
-    if(table != null) {
-      if(StringUtils.isNotBlank(table.name())) {
-        tablename = table.name().toLowerCase();
-      }
-    }
-    beanTablename.put(beanClass, tablename);
-    return tablename;
+    return namingStrategy.tablename(beanClass);
   }
   
   private void extractColumnIndexMap(ResultSet rs) throws SQLException{
@@ -213,19 +215,13 @@ public class BeanRowMapper<T> implements RowMapper<T> {
       ResultSetMetaData rsMetaData = rs.getMetaData();
      
       int count = rsMetaData.getColumnCount();
-      for(int  i = 0; i < count; i++) {
-        int index = i + 1;
+      for(int  index = 1; index <= count; index++) {
+        //int index = i + 1;
         String table = rsMetaData.getTableName(index).toLowerCase();
-        
-        //原始列名(Label)
-        String label = table + "." + rsMetaData.getColumnLabel(index).toLowerCase();
-        columnIndexMap.put(label, new ColumnTypesIndex(label, index, rsMetaData.getColumnType(index)));
-        //驼峰命名
-        String camelName = (table + "." + StringUtils.toCamelCase(rsMetaData.getColumnLabel(index))).toLowerCase();
-        columnIndexMap.put(camelName, new ColumnTypesIndex(camelName, index, rsMetaData.getColumnType(index)));
-        //下划线
-        String snakeName = (table + "." + StringUtils.toSnakeCase(rsMetaData.getColumnName(index))).toLowerCase();
-        columnIndexMap.put(snakeName, new ColumnTypesIndex(snakeName, index, rsMetaData.getColumnType(index)));
+        //列名(Label)
+        String label = table + "." + namingStrategy.columnLabel(rs, index);
+        int columnType = rsMetaData.getColumnType(index);
+        columnIndexMap.put(label, new ColumnTypesIndex(label, index, columnType));
       }
     }
   }

@@ -2,16 +2,17 @@ package com.github.catstiger.core.db.sync;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
-import javax.persistence.Column;
 import javax.persistence.Entity;
-import javax.persistence.JoinColumn;
 import javax.persistence.ManyToMany;
-import javax.persistence.Table;
 
 import org.springframework.util.ReflectionUtils;
 
+import com.github.catstiger.core.db.NamingStrategy;
+import com.github.catstiger.core.db.SQLFactory;
 import com.github.catstiger.core.db.sync.annotation.SyncIgnore;
 import com.github.catstiger.utils.ReflectUtils;
 import com.github.catstiger.utils.StringUtils;
@@ -19,11 +20,47 @@ import com.google.common.base.Splitter;
 
 import lombok.NonNull;
 
-public abstract class ORMHelper {
+public final class ORMHelper {
+  private static Map<String, ORMHelper> instances = new ConcurrentHashMap<>(5);
+  
+  private NamingStrategy namingStrategy;
+  
+  private ORMHelper() {
+    namingStrategy = SQLFactory.DEFAULT_NAME_STRATEGY;
+  }
+  
+  private ORMHelper(NamingStrategy namingStrategy) {
+    this.namingStrategy = namingStrategy;
+  }
+  
+  public static ORMHelper getInstance() {
+    String key = SQLFactory.DEFAULT_NAME_STRATEGY.getClass().getSimpleName();
+    if(!instances.containsKey(key)) {
+      ORMHelper instance = new ORMHelper();
+      instances.put(key, instance);
+    }
+    
+    return instances.get(key);
+  }
+  
+  public static ORMHelper getInstance(NamingStrategy namingStrategy) {
+    if(namingStrategy == null) {
+      return getInstance();
+    }
+    String key = namingStrategy.getClass().getSimpleName();
+    if(!instances.containsKey(key)) {
+      ORMHelper instance = new ORMHelper(namingStrategy);
+      instances.put(key, instance);
+    }
+    
+    return instances.get(key);
+  }
+  
+  
   /**
    * 判断给定的Class是否是一个实体类
    */
-  public static Boolean isEntity(Class<?> entityClass) {
+  public Boolean isEntity(Class<?> entityClass) {
     if(entityClass == null) {
       return false;
     }
@@ -34,7 +71,7 @@ public abstract class ORMHelper {
   /**
    * 判断一个实体类是否被数据同步忽略，被SyncIgnore标注的类会被忽略
    */
-  public static Boolean isEntityIgnore(Class<?> entityClass) {
+  public Boolean isEntityIgnore(Class<?> entityClass) {
     if(entityClass == null) {
       return true;
     }
@@ -52,21 +89,8 @@ public abstract class ORMHelper {
    * @param entityClass 给出实体类
    * @return 表名
    */
-  public static String tableNameByEntity(@NonNull Class<?> entityClass) {
-    if(entityClass.getAnnotation(Entity.class) == null) {
-      return null;
-    }
-    
-    Table table = entityClass.getAnnotation(Table.class);
-    String tablename;
-    
-    if(table != null && StringUtils.isNotBlank(table.name())) {
-      tablename = table.name();
-    } else {
-      tablename = StringUtils.toSnakeCase(entityClass.getSimpleName());
-    }
-    
-    return tablename;
+  public String tableNameByEntity(@NonNull Class<?> entityClass) {
+    return namingStrategy.tablename(entityClass);
   }
   
   /**
@@ -79,25 +103,8 @@ public abstract class ORMHelper {
    * @param fieldName 属性名
    * @return 字段名
    */
-  public static String columnNameByField(@NonNull Class<?> entityClass, @NonNull String fieldName) {
-    @NonNull Field field = ReflectionUtils.findField(entityClass, fieldName);
-    @NonNull Method getter  = getAccessMethod(entityClass, fieldName);
-    Column column = getter.getAnnotation(Column.class);
-    JoinColumn joinCol = getter.getAnnotation(JoinColumn.class);
-    Entity refEntityAnn = field.getType().getAnnotation(Entity.class); //外键
-    String columnName;
-    if(column != null && StringUtils.isNotBlank(column.name())) {
-      columnName = column.name();
-    } else if (joinCol != null && StringUtils.isNotBlank(joinCol.name())) {
-      columnName = joinCol.name();
-    } else {
-      columnName = StringUtils.toSnakeCase(field.getName());
-      if (refEntityAnn != null) {
-        columnName = columnName + "_id";
-      } 
-    }
-    
-    return columnName;
+  public String columnNameByField(@NonNull Class<?> entityClass, @NonNull String fieldName) {
+    return namingStrategy.columnName(entityClass, fieldName);
   }
   /**
    * 根据实体类，和field，获取对应的GETTER方法。被如下Annotation标注的字段或者对应的Getter方法，会被忽略
@@ -110,7 +117,7 @@ public abstract class ORMHelper {
    * @param fieldName 属性名
    * @return Getter Meth
    */
-  public static Method getAccessMethod(@NonNull Class<?> entityClass, @NonNull String fieldName) {
+  public Method getAccessMethod(@NonNull Class<?> entityClass, @NonNull String fieldName) {
     Method getter = ReflectionUtils.findMethod(entityClass, "get" + StringUtils.upperFirst(fieldName));
     return getter;
   }
@@ -120,7 +127,7 @@ public abstract class ORMHelper {
    * @param field
    * @return
    */
-  public static Boolean isFieldIgnore(Field field) {
+  public Boolean isFieldIgnore(Field field) {
     javax.persistence.Transient transientAnn = field.getAnnotation(javax.persistence.Transient.class);
     if(transientAnn != null) {
       return true;
@@ -157,7 +164,7 @@ public abstract class ORMHelper {
     return false;
   }
   
-  public static Boolean isFieldIgnore(Class<?> entityClass, String fieldName) {
+  public Boolean isFieldIgnore(Class<?> entityClass, String fieldName) {
     try {
       Field field = ReflectUtils.findField(entityClass, fieldName);
       return isFieldIgnore(field);
@@ -168,7 +175,10 @@ public abstract class ORMHelper {
     return false;
   }
   
-  public static String simpleName(@NonNull String name) {
+  /**
+   * 返回缩写
+   */
+  public String simpleName(@NonNull String name) {
     StringBuilder strBuilder = new StringBuilder();
     Splitter.on("_").split(name).forEach(new Consumer<String>() {
       @Override

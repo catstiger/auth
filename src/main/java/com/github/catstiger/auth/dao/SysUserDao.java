@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.github.catstiger.auth.model.SysUser;
 import com.github.catstiger.core.db.SQLFactory;
 import com.github.catstiger.core.db.SQLFactory.SQLReady;
+import com.github.catstiger.core.db.SQLFactory.SQLRequest;
 import com.github.catstiger.core.db.id.IdGen;
 import com.github.catstiger.core.db.mapper.BeanRowMapper;
 
@@ -29,7 +30,7 @@ public class SysUserDao {
    * @return Instance of SysUser
    */
   public SysUser byMobile(String mobile) {
-    String sql = new StringBuilder(SQLFactory.getInstance().select(SysUser.class, true))
+    String sql = new StringBuilder(SQLFactory.getInstance().select(new SQLRequest(SysUser.class)))
         .append(" WHERE mobile=? limit 1").toString();
     log.debug("SysUserDao.byMobile: {}", sql);
     List<SysUser> users = jdbcTemplate.query(sql, new Object[]{mobile}, new BeanRowMapper<SysUser>(SysUser.class));
@@ -68,7 +69,7 @@ public class SysUserDao {
   @Transactional
   public SysUser insert(SysUser entity) {
     entity.setId(idGen.nextId());
-    SQLReady sqlReady = SQLFactory.getInstance().insert(entity, false);
+    SQLReady sqlReady = SQLFactory.getInstance().insertDynamic(new SQLRequest(entity));
     jdbcTemplate.update(sqlReady.getSql(), sqlReady.getArgs());
     
     return entity;

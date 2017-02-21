@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.github.catstiger.auth.model.SmsRecord;
 import com.github.catstiger.core.db.SQLFactory;
 import com.github.catstiger.core.db.SQLFactory.SQLReady;
+import com.github.catstiger.core.db.SQLFactory.SQLRequest;
 import com.github.catstiger.core.db.id.IdGen;
 
 import reactor.core.support.Assert;
@@ -35,7 +36,7 @@ public class SmsRecordDao {
   @Transactional
   public SmsRecord insert(SmsRecord entity) {
     entity.setId(idGen.nextId());
-    SQLReady sqlReady = SQLFactory.getInstance().insert(entity, false);
+    SQLReady sqlReady = SQLFactory.getInstance().insertDynamic(new SQLRequest(entity).usingAlias(false));
     jdbcTemplate.update(sqlReady.getSql(), sqlReady.getArgs());
     
     return entity;

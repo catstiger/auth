@@ -19,6 +19,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.ReflectionUtils;
 
+import com.github.catstiger.core.db.NamingStrategy;
 import com.github.catstiger.core.db.sync.ColumnCreator;
 import com.github.catstiger.core.db.sync.DatabaseInfo;
 import com.github.catstiger.core.db.sync.IndexCreator;
@@ -40,16 +41,20 @@ public class MySqlColumnCreator implements ColumnCreator {
   @Resource
   private IndexCreator indexCreator;
   
+  private NamingStrategy namingStrategy;
+  
+  
   @Override
   public void addColumnIfNotExists(Class<?> entityClass, String field) {
-    if(ORMHelper.isFieldIgnore(entityClass, field)) {
+    ORMHelper ormHelper = ORMHelper.getInstance(namingStrategy);
+    if(ormHelper.isFieldIgnore(entityClass, field)) {
       return;
     }
     
     if(!isColumnExists(entityClass, field)) {
       StringBuilder sqlBuilder = new StringBuilder(100)
           .append("alter table ")
-          .append(ORMHelper.tableNameByEntity(entityClass))
+          .append(ormHelper.tableNameByEntity(entityClass))
           .append(" add column (")
           .append(getColumnSqlFragment(entityClass, field))
           .append(")");
@@ -60,16 +65,17 @@ public class MySqlColumnCreator implements ColumnCreator {
 
   @Override
   public String getColumnSqlFragment(@NonNull Class<?> entityClass, @NonNull String fieldName) {
-    if(!ORMHelper.isEntity(entityClass)) {
+    ORMHelper ormHelper = ORMHelper.getInstance(namingStrategy);
+    if(!ormHelper.isEntity(entityClass)) {
       throw new RuntimeException(entityClass.getName() + " 不是实体类！");
     }
     Field field = ReflectionUtils.findField(entityClass, fieldName); //属性
-    if(ORMHelper.isFieldIgnore(field)) {
+    if(ormHelper.isFieldIgnore(field)) {
       return "";
     }
     
-    String name = ORMHelper.columnNameByField(entityClass, fieldName); //对应的字段名
-    @NonNull Method getter = ORMHelper.getAccessMethod(entityClass, fieldName); //对应的getter方法
+    String name = ormHelper.columnNameByField(entityClass, fieldName); //对应的字段名
+    @NonNull Method getter = ormHelper.getAccessMethod(entityClass, fieldName); //对应的getter方法
     Column colAnn = getter.getAnnotation(Column.class); // Column标注
     JoinColumn joinColAnn = getter.getAnnotation(JoinColumn.class); //外键标注
     Lob lobAnn = getter.getAnnotation(Lob.class); //Lob标注
@@ -179,11 +185,12 @@ public class MySqlColumnCreator implements ColumnCreator {
 
   @Override
   public void addForeignKeyIfNotExists(Class<?> entityClass, String field, Class<?> refClass, String refField) {
-    if(ORMHelper.isEntityIgnore(entityClass)) {
+    ORMHelper ormHelper = ORMHelper.getInstance(namingStrategy);
+    if(ormHelper.isEntityIgnore(entityClass)) {
       return;
     }
     
-    if(ORMHelper.isFieldIgnore(entityClass, field)) {
+    if(ormHelper.isFieldIgnore(entityClass, field)) {
       return;
     }
     
@@ -191,10 +198,10 @@ public class MySqlColumnCreator implements ColumnCreator {
       indexCreator.addIndexIfNotExists(entityClass, field); //外键需要创建索引
       return;
     }
-    String table = ORMHelper.tableNameByEntity(entityClass);
-    String refTable = ORMHelper.tableNameByEntity(refClass);
-    String column = ORMHelper.columnNameByField(entityClass, field);
-    String refColumn = ORMHelper.columnNameByField(refClass, refField);
+    String table = ormHelper.tableNameByEntity(entityClass);
+    String refTable = ormHelper.tableNameByEntity(refClass);
+    String column = ormHelper.columnNameByField(entityClass, field);
+    String refColumn = ormHelper.columnNameByField(refClass, refField);
     
     if(!databaseInfo.isForeignKeyExists(table, column, refTable, refColumn)) {
       String fkName = new StringBuilder(30).append("fk_").append(table).append("_").append(column).append("_").append(refTable).toString();
@@ -215,8 +222,13 @@ public class MySqlColumnCreator implements ColumnCreator {
 
   @Override
   public Boolean isColumnExists(Class<?> entityClass, String field) {
-    String table = ORMHelper.tableNameByEntity(entityClass);
-    String colname = ORMHelper.columnNameByField(entityClass, field);
+    ORMHelper ormHelper = ORMHelper.getInstance(namingStrategy);
+    String table = ormHelper.tableNameByEntity(entityClass);
+    String colname = ormHelper.columnNameByField(entityClass, field);
     return databaseInfo.isColumnExists(table, colname);
+  }
+
+  public NamingStrategy getNamingStrategy() {
+    return namingStrategy;
   }
 }

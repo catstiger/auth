@@ -5,20 +5,17 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
 import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.Table;
 import javax.persistence.Transient;
 
 import org.springframework.util.Assert;
@@ -26,14 +23,13 @@ import org.springframework.util.DigestUtils;
 
 import com.github.catstiger.core.db.id.IdGen;
 import com.github.catstiger.core.db.id.SnowflakeIDWorker;
+import com.github.catstiger.core.db.mapper.ns.CamelCaseNamingStrategy;
 import com.github.catstiger.core.entity.BaseEntity;
 import com.github.catstiger.utils.ClassUtils;
 import com.github.catstiger.utils.CollectionUtils;
 import com.github.catstiger.utils.ReflectUtils;
-import com.github.catstiger.utils.StringUtils;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
-import com.google.common.base.Splitter;
 import com.google.common.collect.Collections2;
 
 
@@ -41,6 +37,11 @@ public final class SQLFactory {
   private static final String SQL_SELECT = "SELECT_";
   private static final String SQL_INSERT = "INSERT_";
   private static final String SQL_UPDATE = "UPDATE_";
+  /**
+   * 缺省的命名策略--字段名，表名使用下划线命名法，别名使用驼峰命名法
+   */
+  public static final NamingStrategy DEFAULT_NAME_STRATEGY = new CamelCaseNamingStrategy();
+  
   //private static final String SQL_DELETE = "DELETE_";
   
   private static Map<String, String> sqlCache = new ConcurrentHashMap<String, String>();
@@ -72,54 +73,6 @@ public final class SQLFactory {
   }
   
   /**
-   * 相当于调用select(entityClass, null, null, false);
-   * @see #select(Class, List, List, Boolean)
-   */
-  public String select(Class<?> entityClass) {
-    return select(entityClass, null, null, false);
-  }
-  
-  /**
-   * 相当于调用select(entityClass, null, null, fieldAsAlias);
-   * @see #select(Class, List, List, Boolean)
-   */
-  public String select(Class<?> entityClass, boolean fieldAsAlias) {
-    return select(entityClass, null, null, fieldAsAlias);
-  }
-  
-  /**
-   * 相当于调用select(entityClass, includeFields, null, fieldAsAlias);
-   * @see #select(Class, List, List, Boolean)
-   */
-  public String selectIncludes(Class<?> entityClass, List<String> includeFields, boolean fieldAsAlias) {
-    return select(entityClass, includeFields, null, fieldAsAlias);
-  }
-  
-  /**
-   * 相当于调用select(entityClass, includeFields, null, false);
-   * @see #select(Class, List, List, Boolean)
-   */
-  public String selectIncludes(Class<?> entityClass, List<String> includeFields) {
-    return select(entityClass, includeFields, null, false);
-  }
-  
-  /**
-   * 相当于调用select(entityClass, null, excludeFields, fieldAsAlias);
-   * @see #select(Class, List, List, Boolean)
-   */
-  public String selectExcludes(Class<?> entityClass, List<String> excludeFields, boolean fieldAsAlias) {
-    return select(entityClass, null, excludeFields, fieldAsAlias);
-  }
-  
-  /**
-   * 相当于调用<code>select(entityClass, null, excludeFields, false);</code>
-   * @see #select(Class, List, List, Boolean)
-   */
-  public String selectExcludes(Class<?> entityClass, List<String> excludeFields) {
-    return select(entityClass, null, excludeFields, false);
-  }
-  
-  /**
    * 根据实体类的属性，构造一个SELECT SQL语句：
    * <ul>
    *     <li>表名根据类名取得，如果被@Table标注，则取@Table规定的类名。</li>
@@ -129,28 +82,26 @@ public final class SQLFactory {
    *     <li>字段别名就是实体类中的字段名，表的别名，就是实体类的类名各个单词的字头小写+下划线</li>
    *     <li>表名，字段名，全部小写，关键字大写。</li>
    * </ul>
-   * @param entityClass 实体类
-   * @param includeFields 必须包含的字段名，不属于其中的，不会包含
-   * @param excludeFields 必须不包含的字段名，属于其中的，不会包含
-   * @param fieldAsAlias 是否需要将属性名作为字段名别名, 缺省为false
+   * @param sqlRequest SQL请求对象
    * @return SQL
    */
-  public String select(Class<?> entityClass, List<String> includeFields, List<String> excludeFields, boolean fieldAsAlias) {
-    String key = sqlKey(entityClass, includeFields, excludeFields, fieldAsAlias, SQL_SELECT);
+  public String select(SQLRequest sqlRequest) {
+    String key = sqlKey(sqlRequest, SQL_SELECT);
     //从缓存中取得SQL
     String sqlObj = sqlCache.get(key);
     if(sqlObj != null) {
       return sqlObj; 
     }
-    Collection<ColField> colFields = columns(entityClass, includeFields, excludeFields, fieldAsAlias);
+    Collection<ColField> colFields = columns(sqlRequest, true);
     
-    final String alias = getTableAlias(entityClass);
-    String tablename = getTablename(entityClass, alias);
+    final String alias = sqlRequest.namingStrategy.tableAlias(sqlRequest.entityClass);
+    String tablename = sqlRequest.namingStrategy.tablename(sqlRequest.entityClass) + " " + alias;
     
     final StringBuilder sqlBuf = new StringBuilder(1000).append("SELECT ");
     for(Iterator<ColField> itr = colFields.iterator(); itr.hasNext();) {
       ColField colField = itr.next();
       sqlBuf.append(alias).append(".").append(colField.col);
+      
       if(itr.hasNext()) {
         sqlBuf.append(",\n");
       }
@@ -160,73 +111,21 @@ public final class SQLFactory {
     
     return sqlBuf.toString();
   }
-    
-  /**
-   * 相当于调用insert(entityClass, null, null, false);
-   * @see {@link #insert(Class, List, List, Boolean)}
-   */
-  public String insert(Class<?> entityClass) {
-    return insert(entityClass, null, null, false);
-  }
-  
-  /**
-   * 相当于调用insert(entityClass, null, null, namedParams);
-   * @see {@link #insert(Class, List, List, Boolean)}
-   */
-  public String insert(Class<?> entityClass, boolean namedParams) {
-    return insert(entityClass, null, null, namedParams);
-  }
-  
-  /**
-   * 相当于调用insert(entityClass, includeFields, null, namedParams);
-   * @see {@link #insert(Class, List, List, Boolean)}
-   */
-  public String insertIncludes(Class<?> entityClass, List<String> includeFields, boolean namedParams) {
-    return insert(entityClass, includeFields, null, namedParams);
-  }
-  
-  /**
-   * 相当于调用insert(entityClass, includeFields, null, false);
-   * @see {@link #insert(Class, List, List, Boolean)}
-   */
-  public String insertIncludes(Class<?> entityClass, List<String> includeFields) {
-    return insert(entityClass, includeFields, null, false);
-  }
-  
-  /**
-   * 相当于调用insert(entityClass, null, excludeFields, namedParams);
-   * @see {@link #insert(Class, List, List, Boolean)}
-   */
-  public String insertExcludes(Class<?> entityClass, List<String> excludeFields, boolean namedParams) {
-    return insert(entityClass, null, excludeFields, namedParams);
-  }
-  
-  /**
-   * 相当于调用insert(entityClass, null, excludeFields, false);
-   * @see {@link #insert(Class, List, List, Boolean)}
-   */
-  public String insertExcludes(Class<?> entityClass, List<String> excludeFields) {
-    return insert(entityClass, null, excludeFields, false);
-  }
   
   /**
    * 根据给定的实体类，构造一个SQL INSERT语句
-   * @param entityClass 给定实体类，必须用Entity标注
-   * @param includeFields 必须包含的字段名
-   * @param excludeFields 必须不包含的字段名
-   * @param namedParams 是否为参数命名，如果为false，所有参数都用?代替，否则，用实体类属性名称代替，例如:INSERT INTO users(id,user_name) VALUES (:id,:userName)
+   * @param sqlRequest 给定SQLRequest
    * @return SQL
    */
-  public String insert(Class<?> entityClass, List<String> includeFields, List<String> excludeFields, boolean namedParams) {
-    String key = sqlKey(entityClass, includeFields, excludeFields, namedParams, SQL_INSERT);
+  public String insert(SQLRequest sqlRequest) {
+    String key = sqlKey(sqlRequest, SQL_INSERT);
     //从缓存中取得SQL
     String sqlObj = sqlCache.get(key);
     if(sqlObj != null) {
       return sqlObj; 
     }
-    String tablename = getTablename(entityClass);
-    
-    Collection<ColField> colFields = columns(entityClass, includeFields, excludeFields, false);
+    String tablename = sqlRequest.namingStrategy.tablename(sqlRequest.entityClass);
+    Collection<ColField> colFields = columns(sqlRequest, false);
     //字段列表
     StringBuilder prevValues = new StringBuilder(100);
     //占位符
@@ -239,9 +138,9 @@ public final class SQLFactory {
         prevValues.append(",\n");
       } 
       
-      afterValues.append(namedParams ? (":" + colField.field) : "?");
+      afterValues.append(sqlRequest.usingAlias ? (":" + colField.field) : "?");
       if(itr.hasNext()) {
-        afterValues.append(namedParams ? ",\n" : "," );
+        afterValues.append(sqlRequest.usingAlias ? ",\n" : "," );
       } 
     }
    
@@ -257,17 +156,18 @@ public final class SQLFactory {
    * @param entity 实体类
    * @return
    */
-  public SQLReady insert(BaseEntity entity, boolean namedParams) {
-    if(entity == null) {
+  public SQLReady insertDynamic(SQLRequest sqlRequest) {
+    if(sqlRequest.entity == null) {
       throw new NullPointerException("给出的实体类不可为空。");
     }
+    
+    BaseEntity entity = sqlRequest.entity;
     if(entity.getId() == null) {
       entity.setId(DEF_IDGEN.nextId());
     }
-    Class<?> entityClass = entity.getClass();
-    
-    String tablename = getTablename(entityClass);
-    Collection<ColField> colFields = columns(entityClass, false);
+    Class<?> entityClass = sqlRequest.entityClass;
+    String tablename = sqlRequest.namingStrategy.tablename(entityClass);
+    Collection<ColField> colFields = columns(sqlRequest, false);
     
     List<Object> args = new ArrayList<Object>(colFields.size());
     List<ColField> nonNullFields = new ArrayList<ColField>(colFields.size());
@@ -298,9 +198,9 @@ public final class SQLFactory {
         prevValues.append(",\n");
       } 
       
-      afterValues.append(namedParams ? (":" + colField.field) : "?");
+      afterValues.append(sqlRequest.usingAlias ? (":" + colField.field) : "?");
       if(itr.hasNext()) {
-        afterValues.append(namedParams ? ",\n" : "," );
+        afterValues.append(sqlRequest.usingAlias ? ",\n" : "," );
       } 
     }
     StringBuilder sqlBuf = new StringBuilder(200).append("INSERT INTO ").append(tablename).append(" (\n")
@@ -308,68 +208,22 @@ public final class SQLFactory {
     
     return new SQLReady(sqlBuf.toString(), args.toArray(new Object[]{}));
   }
-  
-  /**
-   * @see #update(Class, List, List, Boolean)
-   */
-  public String update(Class<?> entityClass) {
-    return this.update(entityClass, null, null, false);
-  }
-  
-  /**
-   * @see #update(Class, List, List, Boolean)
-   */
-  public String update(Class<?> entityClass, boolean namedParams) {
-    return this.update(entityClass, null, null, namedParams);
-  }
-  
-  /**
-   * @see #update(Class, List, List, Boolean)
-   */
-  public String updateIncludes(Class<?> entityClass, List<String> includeFields, boolean namedParams) {
-    return this.update(entityClass, includeFields, null, namedParams);
-  }
-  
-  /**
-   * @see #update(Class, List, List, Boolean)
-   */
-  public String updateIncludes(Class<?> entityClass, List<String> includeFields) {
-    return this.update(entityClass, includeFields, null, false);
-  }
-  
-  /**
-   * @see #update(Class, List, List, Boolean)
-   */
-  public String updateExcludes(Class<?> entityClass, List<String> excludeFields, boolean namedParams) {
-    return update(entityClass, null, excludeFields, namedParams);
-  }
-  
-  /**
-   * @see #update(Class, List, List, Boolean)
-   */
-  public String updateExcludes(Class<?> entityClass, List<String> excludeFields) {
-    return update(entityClass, null, excludeFields, false);
-  }
-  
+ 
   /**
    * 根据给定的实体类，生成update语句
-   * @param entityClass 实体类，必须用@Entity标注
-   * @param includeFields 必须包含的字段
-   * @param excludeFields 必须不包含的字段
-   * @param byId 如果true,并且字段列表中包括主键，则添加WHERE PK=?
-   * @param namedParams 是否使用命名参数
+   * @param sqlRequest SQLRequest对象
    * @return
    */
-  public String update(Class<?> entityClass, List<String> includeFields, List<String> excludeFields, final boolean namedParams) {
-    String key = sqlKey(entityClass, includeFields, excludeFields, namedParams, SQL_UPDATE);
+  public String update(SQLRequest sqlRequest) {
+    String key = sqlKey(sqlRequest, SQL_UPDATE);
     //从缓存中取得SQL
     String sqlObj = sqlCache.get(key);
     if(sqlObj != null) {
       return sqlObj; 
     }
-    String tablename = getTablename(entityClass);
+    String tablename = sqlRequest.namingStrategy.tablename(sqlRequest.entityClass);
     
-    Collection<ColField> colFields = columns(entityClass, includeFields, excludeFields, false);
+    Collection<ColField> colFields = columns(sqlRequest, false);
     final StringBuilder sqlBuf = new StringBuilder(100).append("UPDATE ").append(tablename).append(" SET ");
     //找到所有非主键
     Collection<ColField> commonCols = Collections2.filter(colFields, new Predicate<ColField>(){
@@ -381,7 +235,7 @@ public final class SQLFactory {
     
     for(Iterator<ColField> itr = commonCols.iterator(); itr.hasNext();) {
       ColField colField = itr.next();
-      sqlBuf.append(colField.col).append(" = ").append(namedParams ? (":" + colField.field) : "?");
+      sqlBuf.append(colField.col).append(" = ").append(sqlRequest.usingAlias ? (":" + colField.field) : "?");
       if(itr.hasNext()) {
         sqlBuf.append(",\n");
       }
@@ -391,46 +245,19 @@ public final class SQLFactory {
     return sqlBuf.toString();
   }
   
-  public Collection<ColField> columns(Class<?> entityClass) {
-    return this.columns(entityClass, null, null, false);
-  }
-  
-  public Collection<ColField> columns(Class<?> entityClass, boolean fieldAsAlias) {
-    return this.columns(entityClass, null, null, fieldAsAlias);
-  }
-  
-  public Collection<ColField> columnsInclude(Class<?> entityClass, List<String> includeFields) {
-    return this.columns(entityClass, includeFields, null, false);
-  }
-  
-  public Collection<ColField> columnsInclude(Class<?> entityClass, List<String> includeFields, boolean fieldAsAlias) {
-    return this.columns(entityClass, includeFields, null, fieldAsAlias);
-  }
-  
-  public Collection<ColField> columnsExclude(Class<?> entityClass, List<String> excludeFields) {
-    return this.columns(entityClass, null, excludeFields, false);
-  }
-  
-  public Collection<ColField> columnsExclude(Class<?> entityClass, List<String> excludeFields, boolean fieldAsAlias) {
-    return this.columns(entityClass, null, excludeFields, fieldAsAlias);
-  }
-  
   /**
-   * 根据给定的实体类，获取对应的列名-字段名列表
-   * @param entityClass 给定实体类
-   * @param includeFields 必须包含的字段名，不在其内的，不会列出
-   * @param excludeFields 不得包含的字段名，在其内的，不会列出
-   * @param fieldAsAlias 是否将字段名作为列名的别名
+   * 根据给定的SQLRequest，获取对应的列名-字段名列表
+   * @param sqlRequest 给定实SQLRequest
    * @return List of {@link ColField}
    */
-  public Collection<ColField> columns(Class<?> entityClass, List<String> includeFields, List<String> excludeFields, boolean fieldAsAlias) {
-    String key = colKey(entityClass, includeFields, excludeFields, fieldAsAlias);
+  public Collection<ColField> columns(SQLRequest sqlRequest, boolean forSelect) {
+    String key = colKey(sqlRequest);
     Collection<ColField> colFields = columnCache.get(key);
     if(colFields != null) {
       return colFields;
     }
     
-    colFields = getColFields(entityClass, includeFields, excludeFields, fieldAsAlias);
+    colFields = getColFields(sqlRequest, forSelect);
     columnCache.put(key, colFields);
     return colFields;
   }
@@ -498,90 +325,34 @@ public final class SQLFactory {
   }
   
   /**
+   * 使用下划线命名法，取得实体类对应的表名
+   */
+  public String getTablename(Class<?> entityClass) {
+    return DEFAULT_NAME_STRATEGY.tablename(entityClass);
+  }
+  
+  /**
    * 获取SQL语句的缓存键值
-   * @param entityClass 实体类
-   * @param includeFields 包含的字段名
-   * @param excludeFields 排除的字段名
-   * @param aliasOrNamed 是否需要将属性名作为字段别名（SELECT）, 或者，是否需要命名参数（INSERT or UPDATE）
+   * @param sqlRequest SQLRequest对象
    * @param type SQL类型
    * @return 缓存Key
    */
-  private String sqlKey(Class<?> entityClass, List<String> includeFields, List<String> excludeFields, boolean aliasOrNamed, String type) {
-    StringBuilder keyBuilder = new StringBuilder(200).append(type).append(entityClass.getName());
-   
-    if(!CollectionUtils.isEmpty(includeFields)) {
-      keyBuilder.append(Joiner.on("_").join(includeFields));
-    }
-    if(!CollectionUtils.isEmpty(excludeFields)) {
-      keyBuilder.append(Joiner.on("_").join(includeFields));
-    }
-    keyBuilder.append(aliasOrNamed);
+  private String sqlKey(SQLRequest sqlRequest, String type) {
+    StringBuilder keyBuilder = new StringBuilder(200).append(type).append(sqlRequest.toString());
     return DigestUtils.md5DigestAsHex(keyBuilder.toString().getBytes(Charset.forName("UTF-8")));
   }
   
   
-  private String colKey(Class<?> entityClass, List<String> includeFields, List<String> excludeFields, boolean fieldAsAlias) {
-    StringBuilder keyBuilder = new StringBuilder(200).append(entityClass.getName());
-    
-    if(!CollectionUtils.isEmpty(includeFields)) {
-      keyBuilder.append(Joiner.on("_").join(includeFields));
-    }
-    if(!CollectionUtils.isEmpty(excludeFields)) {
-      keyBuilder.append(Joiner.on("_").join(includeFields));
-    }
-    keyBuilder.append(fieldAsAlias);
-    
-    return DigestUtils.md5DigestAsHex(keyBuilder.toString().getBytes(Charset.forName("UTF-8")));
-  }
-  /**
-   * 根据给定的实体类，得到对应的表名
-   * @param entityClass 给出实体类
-   * @param alias 别名
-   * @return
-   */
-  private String getTablename(Class<?> entityClass, String alias) {
-    Entity entity = entityClass.getAnnotation(Entity.class);
-    if(entity == null) {
-      throw new RuntimeException("实体类必须用@Entity标注");  
-    }
-    
-    String tablename = StringUtils.toSnakeCase(entityClass.getSimpleName());
-    Table table = entityClass.getAnnotation(Table.class);
-    if(table != null && StringUtils.isNotBlank(table.name())) {
-      tablename = table.name();
-    }
-    
-    if(alias != null) {
-      tablename += (" " + alias);
-    }
-    
-    return tablename;
+  private String colKey(SQLRequest sqlRequest) {
+    return DigestUtils.md5DigestAsHex(sqlRequest.toString().getBytes(Charset.forName("UTF-8")));
   }
   
-  public String getTablename(Class<?> entityClass) {
-    return getTablename(entityClass, null);
-  }
+ 
   
-  private List<ColField> getColFields(Class<?> entityClass, List<String> includeFields, List<String> excludeFields, boolean fieldAsAlias) {
-    PropertyDescriptor[] propertyDescriptors = ReflectUtils.getPropertyDescriptors(entityClass);
+  private List<ColField> getColFields(SQLRequest sqlRequest, boolean forSelect) {
+    PropertyDescriptor[] propertyDescriptors = ReflectUtils.getPropertyDescriptors(sqlRequest.entityClass);
     if(propertyDescriptors == null) {
-      throw new RuntimeException("无法获取PropertyDescriptor " + entityClass.getName());
-    }
-    //includeFields 全部转为小写
-    if(!CollectionUtils.isEmpty(includeFields)) {
-      includeFields.forEach(new Consumer<String>() {
-        @Override
-        public void accept(String t) {
-          if(t != null) t = t.toLowerCase();
-        }});
-    }
-    //excludeFields 全部转为小写
-    if(!CollectionUtils.isEmpty(excludeFields)) {
-      excludeFields.forEach(new Consumer<String>() {
-        @Override
-        public void accept(String t) {
-          if(t != null) t = t.toLowerCase();
-        }});
+      throw new RuntimeException("无法获取PropertyDescriptor " + sqlRequest.entityClass.getName());
     }
     
     List<ColField> colFields = new ArrayList<ColField>(propertyDescriptors.length);
@@ -590,46 +361,37 @@ public final class SQLFactory {
       if(propertyDescriptor == null) {
         continue;
       }
+      //Read方法
       Method readMethod = propertyDescriptor.getReadMethod();
       if(readMethod == null) {
         continue;
       }
+      //如果标注为Transient,则忽略
       if(readMethod.getAnnotation(Transient.class) != null || readMethod.getAnnotation(java.beans.Transient.class) != null) {
         continue;
       }
-      if(ClassUtils.isAssignable(propertyDescriptor.getPropertyType(), Collection.class)) {
+      //如果是集合类或者数组，则忽略
+      if(ClassUtils.isAssignable(propertyDescriptor.getPropertyType(), Collection.class) || propertyDescriptor.getPropertyType().isArray()) {
         continue;
       }
+      String fieldname = propertyDescriptor.getName();
+      //必须包含
+      if(!CollectionUtils.isEmpty(sqlRequest.includes) && !sqlRequest.includes.contains(fieldname)) {
+        continue;
+      }
+      //必须排除
+      if(!CollectionUtils.isEmpty(sqlRequest.excludes) && sqlRequest.excludes.contains(fieldname)) {
+        continue;
+      }
+      //列名，根据字段名转换得到，与表生成的规则相同
+      String columnName = sqlRequest.namingStrategy.columnName(sqlRequest.entityClass, fieldname); //EntityBean属性名小写作为字段名
       
-      String columnName = StringUtils.toSnakeCase(propertyDescriptor.getName()); //EntityBean属性名小写作为字段名
-      
-      if(!CollectionUtils.isEmpty(includeFields) && !includeFields.contains(columnName)) {
-        continue;
-      }
-      if(!CollectionUtils.isEmpty(excludeFields) && excludeFields.contains(columnName)) {
-        continue;
-      }
-      //有@Column标记
-      Column column = readMethod.getAnnotation(Column.class);
-      if(column != null && StringUtils.isNotBlank(column.name())) {
-        columnName = column.name().toLowerCase();
-      }
-      //有JoinColumn标记
-      JoinColumn joinColumn = readMethod.getAnnotation(JoinColumn.class);
-      if(joinColumn != null && StringUtils.isNotBlank(joinColumn.name())) {
-        columnName = joinColumn.name().toLowerCase();
-      }
       //属性名作为别名
-      if(fieldAsAlias) {
-        if(joinColumn != null) {
-          columnName += (" AS " + propertyDescriptor.getName() + "Id");
-        } else {
-          columnName += (" AS " + propertyDescriptor.getName());
-        }
-        
+      if(sqlRequest.usingAlias && forSelect) {
+        columnName += (" AS " + fieldname);
       }
       
-      ColField colField = new ColField(columnName, propertyDescriptor.getName(), readMethod.getAnnotation(Id.class) != null);
+      ColField colField = new ColField(columnName, fieldname, readMethod.getAnnotation(Id.class) != null);
       colFields.add(colField);
     }
     
@@ -637,20 +399,132 @@ public final class SQLFactory {
   }
   
   /**
-   * 根据类名获取表名别名
-   * @param entityClass 给出实体类
-   * @return 返回表名别名，别名为实体类类名各个单词首字母小写
+   * 用于存放生成SQL所需的参数
+   * @author catstiger
+   *
    */
-  private String getTableAlias(Class<?> entityClass) {
-    Iterable<String> iterable = Splitter.on("_").split(StringUtils.toSnakeCase(entityClass.getSimpleName()));
-    StringBuilder alias = new StringBuilder(10);
-    for(Iterator<String> itr = iterable.iterator(); itr.hasNext();) {
-      alias.append(itr.next().charAt(0));
+  public static final class SQLRequest {
+    
+    private Class<?> entityClass;
+    private BaseEntity entity;
+    private List<String> includes;
+    private List<String> excludes;
+    private boolean usingAlias = false;
+    private NamingStrategy namingStrategy;
+    
+    public SQLRequest(Class<?> entityClass) {
+      this.entity = null;
+      this.entityClass = entityClass;
+      includes = Collections.emptyList();
+      excludes = Collections.emptyList();
+      usingAlias = false;
+      namingStrategy = DEFAULT_NAME_STRATEGY;
     }
     
-    return alias.toString().toLowerCase();
+    public SQLRequest(BaseEntity entity) {
+      if(entity == null) {
+        throw new RuntimeException("实体不可为null.");
+      }
+      this.entity = entity;
+      this.entityClass = entity.getClass();
+      includes = Collections.emptyList();
+      excludes = Collections.emptyList();
+      usingAlias = false;
+      namingStrategy = DEFAULT_NAME_STRATEGY;
+    }
+    
+    /**
+     * 设置SQL对应的实体类的Class
+     * @param entityClass 实体类
+     * @return 支持链式操作
+     */
+    public SQLRequest entityClass(Class<?> entityClass) {
+      this.entityClass = entityClass;
+      return this;
+    }
+    
+    /**
+     * 设置SQL对应的实体对象，通常用于生成SQL
+     * @param entity 实体对象
+     * @return 支持链式操作
+     */
+    public SQLRequest entity(BaseEntity entity) {
+      this.entity = entity;
+      return this;
+    }
+    /**
+     * 设置必须包含的属性名
+     * @param includes 属性名
+     * @return  支持链式操作
+     */
+    public SQLRequest includes(String... includes) {
+      if(includes != null && includes.length > 0) {
+        this.includes = Arrays.asList(includes);
+      } else {
+        this.includes = Collections.emptyList();
+      }
+      
+      return this;
+    }
+    
+    /**
+     * 设置必须排除的属性名
+     * @param excludes 属性名
+     * @return  支持链式操作
+     */
+    public SQLRequest excludes(String... excludes) {
+      if(excludes != null && excludes.length > 0) {
+        this.excludes = Arrays.asList(excludes);
+      } else {
+        this.excludes = Collections.emptyList();
+      }
+      return this;
+    }
+    
+    /**
+     * 是否将属性名作为字段的别名，或者，在insert和update的时候，用属性名代替?
+     * @param usingAlias 如果为<code>true</code>，则将属性名作为字段名的别名，例如 user_id AS userId， 缺省为<code>false</code>
+     * @return  支持链式操作
+     */
+    public SQLRequest usingAlias(boolean usingAlias) {
+      this.usingAlias = usingAlias;
+      return this;
+    }
+    
+    /**
+     * 设置命名规则
+     * @param namingStrategy 命名规则的实例
+     * @return  支持链式操作
+     */
+    public SQLRequest namingStrategy(NamingStrategy namingStrategy) {
+      this.namingStrategy = namingStrategy;
+      return this;
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder buf = new StringBuilder(200);
+      if(entity != null) {
+        entityClass = entity.getClass();
+      }
+      buf.append(entityClass.getName()).append(usingAlias);
+      
+      if(!CollectionUtils.isEmpty(includes)) {
+        buf.append(Joiner.on("_").join(includes));
+      }
+      if(!CollectionUtils.isEmpty(excludes)) {
+        buf.append(Joiner.on("_").join(excludes));
+      }
+      
+      buf.append(namingStrategy.getClass().getSimpleName());
+      
+      return buf.toString();
+    }
+
   }
-  
+  /**
+   * 用于存放生成的SQL，以及对应的参数
+   */
   public static final class SQLReady {
     private String sql;
     private Object[] args = new Object[]{};

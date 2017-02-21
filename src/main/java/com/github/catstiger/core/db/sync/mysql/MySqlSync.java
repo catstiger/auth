@@ -15,6 +15,7 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import com.github.catstiger.core.db.NamingStrategy;
 import com.github.catstiger.core.db.sync.ColumnCreator;
 import com.github.catstiger.core.db.sync.DatabaseInfo;
 import com.github.catstiger.core.db.sync.DbSync;
@@ -45,6 +46,8 @@ public class MySqlSync implements DbSync, InitializingBean {
   
   private String[] packagesToScan;
   
+  private NamingStrategy namingStrategy;
+  
   @Override
   public void afterPropertiesSet() throws Exception {
     modelClassLoader.scanPackages(packagesToScan);
@@ -57,14 +60,15 @@ public class MySqlSync implements DbSync, InitializingBean {
   
   @Override
   public void sync() {
+    ORMHelper ormHelper = ORMHelper.getInstance(namingStrategy);
     Set<String> tables = new HashSet<String>();
     Iterator<Class<?>> entityItr = modelClassLoader.getEntityClasses();
     //创建所有表和字段
     while(entityItr.hasNext()) {
       Class<?> entityClass = entityItr.next();
       
-      if(ORMHelper.isEntity(entityClass)) {
-        String table = ORMHelper.tableNameByEntity(entityClass);
+      if(ormHelper.isEntity(entityClass)) {
+        String table = ormHelper.tableNameByEntity(entityClass);
         if(tables.contains(table)) {
           throw Exceptions.readable("表名重复，请检查实体类 " + entityClass.getName() );
         }
@@ -79,7 +83,7 @@ public class MySqlSync implements DbSync, InitializingBean {
     while(entityItr.hasNext()) {
       Class<?> entityClass = entityItr.next();
       
-      if(ORMHelper.isEntity(entityClass)) {
+      if(ormHelper.isEntity(entityClass)) {
         logger.debug("同步外键 {}", entityClass);
         syncForeignKey(entityClass);
       }
@@ -90,7 +94,7 @@ public class MySqlSync implements DbSync, InitializingBean {
     while(entityItr.hasNext()) {
       Class<?> entityClass = entityItr.next();
       
-      if(ORMHelper.isEntity(entityClass)) {
+      if(ormHelper.isEntity(entityClass)) {
         logger.debug("同步索引 {}", entityClass);
         syncIndexes(entityClass);
       }
@@ -100,7 +104,7 @@ public class MySqlSync implements DbSync, InitializingBean {
     while(entityItr.hasNext()) {
       Class<?> entityClass = entityItr.next();
       
-      if(ORMHelper.isEntity(entityClass)) {
+      if(ormHelper.isEntity(entityClass)) {
         logger.debug("many2many {}", entityClass);
         syncM2m(entityClass);
       }
@@ -115,7 +119,8 @@ public class MySqlSync implements DbSync, InitializingBean {
   }
 
   private void syncEntity(Class<?> entityClass) {
-    String table = ORMHelper.tableNameByEntity(entityClass);
+    ORMHelper ormHelper = ORMHelper.getInstance(namingStrategy);
+    String table = ormHelper.tableNameByEntity(entityClass);
     if(!databaseInfo.isTableExists(table)) {
       tableCreator.createTableIfNotExists(entityClass);
     } else {
@@ -127,14 +132,15 @@ public class MySqlSync implements DbSync, InitializingBean {
    * 创建外键，多对一
    */
   private void syncForeignKey(Class<?> entityClass) {
+    ORMHelper ormHelper = ORMHelper.getInstance(namingStrategy);
     Field[] fields = ReflectUtils.getFields(entityClass); //.getFields();
     for(Field field : fields) {
-      if(ORMHelper.isFieldIgnore(field)) {
+      if(ormHelper.isFieldIgnore(field)) {
         continue;
       }
       JoinColumn joinColumn = field.getAnnotation(JoinColumn.class);
       if(joinColumn == null) {
-        Method getter = ORMHelper.getAccessMethod(entityClass, field.getName());
+        Method getter = ormHelper.getAccessMethod(entityClass, field.getName());
         joinColumn = getter.getAnnotation(JoinColumn.class);
       }
       if(joinColumn == null) {
@@ -146,14 +152,15 @@ public class MySqlSync implements DbSync, InitializingBean {
   }
   
   private void syncIndexes(Class<?> entityClass) {
+    ORMHelper ormHelper = ORMHelper.getInstance(namingStrategy);
     Field[] fields = ReflectUtils.getFields(entityClass);
     for(Field field : fields) {
-      if(ORMHelper.isFieldIgnore(field)) {
+      if(ormHelper.isFieldIgnore(field)) {
         continue;
       }
       JoinColumn joinColumn = field.getAnnotation(JoinColumn.class);
       if(joinColumn == null) {
-        Method getter = ORMHelper.getAccessMethod(entityClass, field.getName());
+        Method getter = ormHelper.getAccessMethod(entityClass, field.getName());
         joinColumn = getter.getAnnotation(JoinColumn.class);
       }
       if(joinColumn != null) { //外键不重复建立索引
@@ -161,5 +168,9 @@ public class MySqlSync implements DbSync, InitializingBean {
       }
       indexCreator.addIndexIfNotExists(entityClass, field.getName());
     }
+  }
+
+  public void setNamingStrategy(NamingStrategy namingStrategy) {
+    this.namingStrategy = namingStrategy;
   }
 }

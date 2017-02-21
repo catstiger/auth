@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
+import com.github.catstiger.core.db.NamingStrategy;
 import com.github.catstiger.core.db.sync.DatabaseInfo;
 import com.github.catstiger.core.db.sync.ManyToManyCreator;
 import com.github.catstiger.core.db.sync.ORMHelper;
@@ -30,12 +31,16 @@ public class MySqlManyToManyCreator implements ManyToManyCreator {
   @Resource
   private DatabaseInfo databaseInfo;
   
+  private NamingStrategy namingStrategy;
+
+  
   @Override
   public void createCrossTable(Class<?> entityClass, String fieldName) {
+    ORMHelper ormHelper = ORMHelper.getInstance(namingStrategy);
     @NonNull Field field = ReflectUtils.findField(entityClass, fieldName);
     ManyToMany m2m = field.getAnnotation(ManyToMany.class);
     if(m2m == null) {
-      @NonNull Method getter = ORMHelper.getAccessMethod(entityClass, fieldName);
+      @NonNull Method getter = ormHelper.getAccessMethod(entityClass, fieldName);
       if(getter != null) {
         m2m = getter.getAnnotation(ManyToMany.class);
       }
@@ -53,9 +58,9 @@ public class MySqlManyToManyCreator implements ManyToManyCreator {
     if(StringUtils.isBlank(mappedBy)) {
       return;
     }
-    String masterTable = ORMHelper.tableNameByEntity(targetEntity);
+    String masterTable = ormHelper.tableNameByEntity(targetEntity);
     String masterColumn = masterTable + "_id"; 
-    String slaveTable = ORMHelper.tableNameByEntity(entityClass);
+    String slaveTable = ormHelper.tableNameByEntity(entityClass);
     String slaveColumn = slaveTable + "_id";
     String crossTable = masterTable + "_" + slaveTable;
     
@@ -75,13 +80,13 @@ public class MySqlManyToManyCreator implements ManyToManyCreator {
     logger.debug("创建交叉表索引 {}", sqlIndex);
     jdbcTemplate.execute(sqlIndex.toString());
     
-    String keyMaster = new StringBuilder(20).append("fk_").append(ORMHelper.simpleName(crossTable))
-        .append("_").append(ORMHelper.simpleName(masterColumn))
-        .append("_").append(ORMHelper.simpleName(masterTable)).toString();
+    String keyMaster = new StringBuilder(20).append("fk_").append(ormHelper.simpleName(crossTable))
+        .append("_").append(ormHelper.simpleName(masterColumn))
+        .append("_").append(ormHelper.simpleName(masterTable)).toString();
     
-    String keySlave = new StringBuilder(20).append("fk_").append(ORMHelper.simpleName(crossTable))
-        .append("_").append(ORMHelper.simpleName(slaveColumn))
-        .append("_").append(ORMHelper.simpleName(slaveTable)).toString();
+    String keySlave = new StringBuilder(20).append("fk_").append(ormHelper.simpleName(crossTable))
+        .append("_").append(ormHelper.simpleName(slaveColumn))
+        .append("_").append(ormHelper.simpleName(slaveTable)).toString();
     //外键
     if(strongReferences) {
       StringBuilder sqlFk = new StringBuilder(200)
@@ -111,6 +116,11 @@ public class MySqlManyToManyCreator implements ManyToManyCreator {
       jdbcTemplate.execute(sqlFk.toString());
     }
     
+  }
+
+
+  public void setNamingStrategy(NamingStrategy namingStrategy) {
+    this.namingStrategy = namingStrategy;
   }
 
 }

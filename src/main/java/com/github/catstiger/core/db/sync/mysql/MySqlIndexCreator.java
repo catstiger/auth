@@ -13,6 +13,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.util.ReflectionUtils;
 
+import com.github.catstiger.core.db.NamingStrategy;
 import com.github.catstiger.core.db.sync.DatabaseInfo;
 import com.github.catstiger.core.db.sync.IndexCreator;
 import com.github.catstiger.core.db.sync.ORMHelper;
@@ -31,10 +32,12 @@ public class MySqlIndexCreator implements IndexCreator {
   private JdbcTemplate jdbcTemplate;
   @Resource
   private DatabaseInfo databaseInfo;
+  private NamingStrategy namingStrategy;
 
   @Override
   public void addIndexIfNotExists(Class<?> entityClass, String fieldName) {
-    if(ORMHelper.isFieldIgnore(entityClass, fieldName)) {
+    ORMHelper ormHelper = ORMHelper.getInstance(namingStrategy);
+    if(ormHelper.isFieldIgnore(entityClass, fieldName)) {
       return;
     }
     
@@ -44,8 +47,8 @@ public class MySqlIndexCreator implements IndexCreator {
     if(index == null) {
       index = field.getAnnotation(Index.class);
     }
-    String table = ORMHelper.tableNameByEntity(entityClass);
-    String column = ORMHelper.columnNameByField(entityClass, field.getName());
+    String table = ormHelper.tableNameByEntity(entityClass);
+    String column = ormHelper.columnNameByField(entityClass, field.getName());
     
     if(index == null) {
       if(!strongReferences) {
@@ -87,6 +90,10 @@ public class MySqlIndexCreator implements IndexCreator {
       }
     }
     
+  }
+
+  public void setNamingStrategy(NamingStrategy namingStrategy) {
+    this.namingStrategy = namingStrategy;
   }
 
 }

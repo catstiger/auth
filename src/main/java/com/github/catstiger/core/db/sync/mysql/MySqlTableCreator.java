@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
+import com.github.catstiger.core.db.NamingStrategy;
 import com.github.catstiger.core.db.sync.ColumnCreator;
 import com.github.catstiger.core.db.sync.DatabaseInfo;
 import com.github.catstiger.core.db.sync.ORMHelper;
@@ -30,10 +31,13 @@ public class MySqlTableCreator implements TableCreator {
   @Resource
   private JdbcTemplate jdbcTemplate;
   
+  private NamingStrategy namingStrategy;
+  
   
   @Override
   public void createTableIfNotExists(Class<?> entityClass) {
-    String table = ORMHelper.tableNameByEntity(entityClass);
+    ORMHelper ormHelper = ORMHelper.getInstance(namingStrategy);
+    String table = ormHelper.tableNameByEntity(entityClass);
     Field[] fields = ReflectUtils.getFields(entityClass);
     
     if(!this.isTableExists(entityClass)) {
@@ -43,7 +47,7 @@ public class MySqlTableCreator implements TableCreator {
           .append("(");
       List<String> sqls = new ArrayList<String>(fields.length); //SQL片段
       for(Field field : fields) {
-        if(ORMHelper.isFieldIgnore(field)) {
+        if(ormHelper.isFieldIgnore(field)) {
           continue;
         }
         String sqlFregment = columnCreator.getColumnSqlFragment(entityClass, field.getName());
@@ -62,22 +66,28 @@ public class MySqlTableCreator implements TableCreator {
 
   @Override
   public Boolean isTableExists(Class<?> entityClass) {
-    String table = ORMHelper.tableNameByEntity(entityClass);
+    ORMHelper ormHelper = ORMHelper.getInstance(namingStrategy);
+    String table = ormHelper.tableNameByEntity(entityClass);
     return databaseInfo.isTableExists(table);
   }
 
   @Override
   public void updateTable(Class<?> entityClass) {
+    ORMHelper ormHelper = ORMHelper.getInstance(namingStrategy);
     Field[] fields = ReflectUtils.getFields(entityClass);
     if(this.isTableExists(entityClass)) {
       for(Field field : fields) {
-        if(ORMHelper.isFieldIgnore(field)) {
+        if(ormHelper.isFieldIgnore(field)) {
           continue;
         }
         columnCreator.addColumnIfNotExists(entityClass, field.getName());
       }
     }
 
+  }
+
+  public void setNamingStrategy(NamingStrategy namingStrategy) {
+    this.namingStrategy = namingStrategy;
   }
 
 }
