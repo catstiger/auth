@@ -7,9 +7,9 @@ import javax.persistence.Lob;
 import javax.persistence.Table;
 import javax.persistence.Transient;
 
-import com.github.catstiger.core.db.sync.annotation.AutoId;
-import com.github.catstiger.core.db.sync.annotation.Index;
-import com.github.catstiger.core.db.sync.annotation.SyncIgnore;
+import com.github.catstiger.core.db.annotation.AutoId;
+import com.github.catstiger.core.db.annotation.Index;
+import com.github.catstiger.core.db.annotation.SyncIgnore;
 
 @Entity
 @Table(name = "test_ref_model")

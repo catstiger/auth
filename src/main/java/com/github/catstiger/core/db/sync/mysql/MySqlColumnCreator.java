@@ -21,10 +21,10 @@ import org.springframework.util.ReflectionUtils;
 
 import com.github.catstiger.core.db.NamingStrategy;
 import com.github.catstiger.core.db.ORMHelper;
+import com.github.catstiger.core.db.annotation.AutoId;
 import com.github.catstiger.core.db.sync.ColumnCreator;
 import com.github.catstiger.core.db.sync.DatabaseInfo;
 import com.github.catstiger.core.db.sync.IndexCreator;
-import com.github.catstiger.core.db.sync.annotation.AutoId;
 import com.github.catstiger.utils.StringUtils;
 
 import lombok.NonNull;

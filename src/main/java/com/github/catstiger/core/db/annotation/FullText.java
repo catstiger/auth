@@ -1,4 +1,4 @@
-package com.github.catstiger.core.db.sync.annotation;
+package com.github.catstiger.core.db.annotation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

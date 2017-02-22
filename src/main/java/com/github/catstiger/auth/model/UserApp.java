@@ -9,7 +9,7 @@ import javax.persistence.JoinColumn;
 import javax.persistence.ManyToMany;
 import javax.persistence.Table;
 
-import com.github.catstiger.core.db.sync.annotation.Index;
+import com.github.catstiger.core.db.annotation.Index;
 import com.github.catstiger.core.entity.BaseEntity;
 
 import lombok.Data;

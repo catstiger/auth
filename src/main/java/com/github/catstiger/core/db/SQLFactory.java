@@ -24,12 +24,12 @@ import javax.persistence.Transient;
 import org.springframework.util.Assert;
 import org.springframework.util.DigestUtils;
 
+import com.github.catstiger.core.db.annotation.FullMatches;
+import com.github.catstiger.core.db.annotation.FullText;
+import com.github.catstiger.core.db.annotation.RangeQuery;
 import com.github.catstiger.core.db.id.IdGen;
 import com.github.catstiger.core.db.id.SnowflakeIDWorker;
 import com.github.catstiger.core.db.ns.CamelCaseNamingStrategy;
-import com.github.catstiger.core.db.sync.annotation.FullMatches;
-import com.github.catstiger.core.db.sync.annotation.FullText;
-import com.github.catstiger.core.db.sync.annotation.RangeQuery;
 import com.github.catstiger.core.entity.BaseEntity;
 import com.github.catstiger.utils.ClassUtils;
 import com.github.catstiger.utils.CollectionUtils;

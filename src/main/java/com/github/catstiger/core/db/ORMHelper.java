@@ -14,7 +14,7 @@ import javax.persistence.Transient;
 
 import org.springframework.util.ReflectionUtils;
 
-import com.github.catstiger.core.db.sync.annotation.SyncIgnore;
+import com.github.catstiger.core.db.annotation.SyncIgnore;
 import com.github.catstiger.utils.ClassUtils;
 import com.github.catstiger.utils.ReflectUtils;
 import com.github.catstiger.utils.StringUtils;

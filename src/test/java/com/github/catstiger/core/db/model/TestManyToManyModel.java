@@ -8,8 +8,8 @@ import javax.persistence.Id;
 import javax.persistence.ManyToMany;
 import javax.persistence.Table;
 
-import com.github.catstiger.core.db.sync.annotation.AutoId;
-import com.github.catstiger.core.db.sync.annotation.SyncIgnore;
+import com.github.catstiger.core.db.annotation.AutoId;
+import com.github.catstiger.core.db.annotation.SyncIgnore;
 
 @Entity
 @Table(name = "test_many_to_many_model")
