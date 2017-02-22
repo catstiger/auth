@@ -13,9 +13,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 import com.github.catstiger.core.db.NamingStrategy;
+import com.github.catstiger.core.db.ORMHelper;
 import com.github.catstiger.core.db.sync.DatabaseInfo;
 import com.github.catstiger.core.db.sync.ManyToManyCreator;
-import com.github.catstiger.core.db.sync.ORMHelper;
 import com.github.catstiger.utils.ReflectUtils;
 import com.github.catstiger.utils.StringUtils;
 

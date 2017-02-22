@@ -16,13 +16,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import com.github.catstiger.core.db.NamingStrategy;
+import com.github.catstiger.core.db.ORMHelper;
 import com.github.catstiger.core.db.sync.ColumnCreator;
 import com.github.catstiger.core.db.sync.DatabaseInfo;
 import com.github.catstiger.core.db.sync.DbSync;
 import com.github.catstiger.core.db.sync.IndexCreator;
 import com.github.catstiger.core.db.sync.ManyToManyCreator;
 import com.github.catstiger.core.db.sync.ModelClassLoader;
-import com.github.catstiger.core.db.sync.ORMHelper;
 import com.github.catstiger.core.db.sync.TableCreator;
 import com.github.catstiger.mvc.exception.Exceptions;
 import com.github.catstiger.utils.ReflectUtils;

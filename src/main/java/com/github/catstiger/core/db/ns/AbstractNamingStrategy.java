@@ -1,4 +1,4 @@
-package com.github.catstiger.core.db.mapper.ns;
+package com.github.catstiger.core.db.ns;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -60,24 +60,28 @@ public abstract class AbstractNamingStrategy implements NamingStrategy {
 
   @Override
   public String columnName(Class<?> entityClass, String fieldname) {
-    
     if(entityClass == null) {
-      throw new NullPointerException("实体类不可为空！");
+      throw new IllegalArgumentException("实体类不可为空！");
     }
     if(StringUtils.isBlank(fieldname)) {
-      throw new NullPointerException("属性名不可为空！");
+      throw new IllegalArgumentException("属性名不可为空！");
     }
-    
-    String key = new StringBuilder(100).append(entityClass.getName()).append("#").append(fieldname).toString();
+    Field field = ReflectUtils.findField(entityClass, fieldname);
+    return this.columnName(entityClass, field);
+  }
+  
+  @Override
+  public String columnName(Class<?> entityClass, Field field) {
+    if(field == null) {
+      throw new java.lang.IllegalArgumentException("属性不可为空！");
+    }
+    String key = new StringBuilder(100).append(entityClass.getName()).append("#").append(field.getName()).toString();
     if(colnameCache.containsKey(key)) {
       return colnameCache.get(key);
     }
+   
     
-    Field field = ReflectUtils.findField(entityClass, fieldname);
-    if(field == null) {
-      throw new NullPointerException("属性不可为空！");
-    }
-    Method getter = ReflectUtils.findMethod(entityClass, "get" + StringUtils.upperFirst(fieldname));
+    Method getter = ReflectUtils.findMethod(entityClass, "get" + StringUtils.upperFirst(field.getName()));
     
     Column colAnn = field.getAnnotation(Column.class);
     if(colAnn == null) {
@@ -103,7 +107,7 @@ public abstract class AbstractNamingStrategy implements NamingStrategy {
       return colname;
     }
     
-    String colname = StringUtils.toSnakeCase(fieldname).toLowerCase();
+    String colname = StringUtils.toSnakeCase(field.getName()).toLowerCase();
     
     Entity refEntityAnn = field.getType().getAnnotation(Entity.class); //外键
     if(joinColAnn != null || refEntityAnn != null) { //外键加_id

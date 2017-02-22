@@ -1,19 +1,21 @@
-package com.github.catstiger.core.db.sync;
+package com.github.catstiger.core.db;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 import javax.persistence.Entity;
+import javax.persistence.Id;
 import javax.persistence.ManyToMany;
+import javax.persistence.Transient;
 
 import org.springframework.util.ReflectionUtils;
 
-import com.github.catstiger.core.db.NamingStrategy;
-import com.github.catstiger.core.db.SQLFactory;
 import com.github.catstiger.core.db.sync.annotation.SyncIgnore;
+import com.github.catstiger.utils.ClassUtils;
 import com.github.catstiger.utils.ReflectUtils;
 import com.github.catstiger.utils.StringUtils;
 import com.google.common.base.Splitter;
@@ -122,6 +124,10 @@ public final class ORMHelper {
     return getter;
   }
   
+  public Method getAccessMethod(@NonNull Field field) {
+    return getAccessMethod(field.getDeclaringClass(), field.getName());
+  }
+  
   /**
    * 字段是否被忽略
    * @param field
@@ -164,6 +170,9 @@ public final class ORMHelper {
     return false;
   }
   
+  /**
+   * 属性是否被忽略
+   */
   public Boolean isFieldIgnore(Class<?> entityClass, String fieldName) {
     try {
       Field field = ReflectUtils.findField(entityClass, fieldName);
@@ -174,6 +183,67 @@ public final class ORMHelper {
     
     return false;
   }
+  
+  /**
+   * 判断字段是否在UPDATE，INSERT中被忽略，标注为Transient的字段，集合类或者数组
+   * @param field
+   * @return
+   */
+  public Boolean isUpdateIgnore(Field field) {
+     //如果标注为Transient,则忽略
+    if(field.getAnnotation(Transient.class) != null || field.getAnnotation(java.beans.Transient.class) != null) {
+      return true;
+    }
+    //如果是集合类或者数组，则忽略
+    if(ClassUtils.isAssignable(field.getType(), Collection.class) || field.getType().isArray()) {
+      return true;
+    }
+    
+    Method getter = this.getAccessMethod(field);
+    if(getter.getAnnotation(Transient.class) != null || getter.getAnnotation(java.beans.Transient.class) != null) {
+      return true;
+    }
+    return false;
+  }
+  
+  public Boolean isUpdateIgnore(Class<?> entityClass, String fieldName) {
+    try {
+      Field field = ReflectUtils.findField(entityClass, fieldName);
+      return isUpdateIgnore(field);
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+    
+    return false;
+  }
+  
+  
+  /**
+   * 判断一个属性是否是主键
+   */
+  public Boolean isPrimaryKey(Field field) {
+    if(isFieldIgnore(field)) {
+      return false;
+    }
+    
+    Id idAnn = field.getAnnotation(Id.class);
+    if(idAnn != null) {
+      return true;
+    }
+    
+    Method getter = this.getAccessMethod(field);
+    idAnn = getter.getAnnotation(Id.class);
+    if(idAnn != null) {
+      return true;
+    }
+    
+    if("id".equals(field.getName()) && Long.class == field.getType()) {
+      return true;
+    }
+    return false;
+  }
+  
+  
   
   /**
    * 返回缩写

@@ -14,9 +14,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.ReflectionUtils;
 
 import com.github.catstiger.core.db.NamingStrategy;
+import com.github.catstiger.core.db.ORMHelper;
 import com.github.catstiger.core.db.sync.DatabaseInfo;
 import com.github.catstiger.core.db.sync.IndexCreator;
-import com.github.catstiger.core.db.sync.ORMHelper;
 import com.github.catstiger.core.db.sync.annotation.Index;
 import com.github.catstiger.utils.StringUtils;
 import com.google.common.base.Joiner;

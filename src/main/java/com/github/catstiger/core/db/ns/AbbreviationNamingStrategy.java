@@ -1,4 +1,4 @@
-package com.github.catstiger.core.db.mapper.ns;
+package com.github.catstiger.core.db.ns;
 
 import java.beans.PropertyDescriptor;
 import java.sql.ResultSet;

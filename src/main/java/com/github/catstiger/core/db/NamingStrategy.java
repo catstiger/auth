@@ -1,6 +1,7 @@
 package com.github.catstiger.core.db;
 
 import java.beans.PropertyDescriptor;
+import java.lang.reflect.Field;
 import java.sql.ResultSet;
 
 public interface NamingStrategy {
@@ -25,7 +26,12 @@ public interface NamingStrategy {
   public String columnLabel(ResultSet rs, int columnIndex);
   
   /**
-   * 根据PropertyDescriptor，得到columnName, 用于生成SQL
+   * 根据Field Name，得到columnName, 用于生成SQL
    */
   public String columnName(Class<?> entityClass, String field);
+  
+  /**
+   * 根据Field，得到columnName, 用于生成SQL
+   */
+  public String columnName(Class<?> entityClass, Field field);
 }

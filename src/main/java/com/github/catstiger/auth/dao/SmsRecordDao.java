@@ -36,7 +36,8 @@ public class SmsRecordDao {
   @Transactional
   public SmsRecord insert(SmsRecord entity) {
     entity.setId(idGen.nextId());
-    SQLReady sqlReady = SQLFactory.getInstance().insertDynamic(new SQLRequest(entity).usingAlias(false));
+    SQLRequest sqlRequest = new SQLRequest(entity).usingAlias(false);
+    SQLReady sqlReady = SQLFactory.getInstance().insertDynamic(sqlRequest);
     jdbcTemplate.update(sqlReady.getSql(), sqlReady.getArgs());
     
     return entity;

@@ -20,10 +20,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.ReflectionUtils;
 
 import com.github.catstiger.core.db.NamingStrategy;
+import com.github.catstiger.core.db.ORMHelper;
 import com.github.catstiger.core.db.sync.ColumnCreator;
 import com.github.catstiger.core.db.sync.DatabaseInfo;
 import com.github.catstiger.core.db.sync.IndexCreator;
-import com.github.catstiger.core.db.sync.ORMHelper;
 import com.github.catstiger.core.db.sync.annotation.AutoId;
 import com.github.catstiger.utils.StringUtils;
 

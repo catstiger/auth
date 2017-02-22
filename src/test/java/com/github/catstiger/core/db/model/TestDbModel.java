@@ -9,8 +9,12 @@ import javax.persistence.Entity;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToMany;
 import javax.persistence.Table;
+import javax.persistence.Transient;
 
+import com.github.catstiger.core.db.sync.annotation.FullMatches;
+import com.github.catstiger.core.db.sync.annotation.FullText;
 import com.github.catstiger.core.db.sync.annotation.Index;
+import com.github.catstiger.core.db.sync.annotation.RangeQuery;
 import com.github.catstiger.core.db.sync.annotation.SyncIgnore;
 import com.github.catstiger.core.entity.BaseEntity;
 
@@ -23,20 +27,35 @@ import lombok.Setter;
 public class TestDbModel extends BaseEntity {
 
   @Getter @Setter
-  @Index
+  @Index @FullMatches
   private String username;
   
-  @Getter @Setter
+  @Getter @Setter @RangeQuery(end = "lastModifiedEnd")
   private Date lastModified;
   
-  @Getter @Setter
+  @Transient @Getter @Setter
+  private Date lastModifiedEnd;
+  
+  @Getter @Setter @RangeQuery(end = "priceEnd", start = "priceStart")
   private Double price;
+  
+  @Transient @Getter @Setter
+  private Double priceStart;
+  
+  @Transient @Getter @Setter
+  private Double priceEnd;
   
   private Float radis;
   
-  @Column(length = 100)
-  @Index
+  @Column(length = 100)  @Getter @Setter
+  @Index @FullText(relativeColumn = "desc_ft")
   private String descn;
+  
+  @Transient @Getter @Setter
+  private String descFt;
+  
+  @Getter @Setter
+  private String realName;
   
   private TestRefModel refModel;
   

@@ -1,4 +1,4 @@
-package com.github.catstiger.core.db.mapper.ns;
+package com.github.catstiger.core.db.ns;
 
 import java.beans.PropertyDescriptor;
 import java.sql.ResultSet;
@@ -7,14 +7,14 @@ import java.sql.SQLException;
 
 import com.github.catstiger.utils.StringUtils;
 
-public class CamelCaseNamingStrategy  extends AbstractNamingStrategy {
+public class SnakeCaseNamingStrategy  extends AbstractNamingStrategy {
 
   @Override
   public String columnLabel(PropertyDescriptor propDesc) {
     if(propDesc == null || StringUtils.isBlank(propDesc.getName())) {
       return null;
     }
-    return StringUtils.toCamelCase(propDesc.getName());
+    return StringUtils.toSnakeCase(propDesc.getName());
   }
 
   @Override
@@ -26,13 +26,14 @@ public class CamelCaseNamingStrategy  extends AbstractNamingStrategy {
       if(StringUtils.isBlank(label)) {
         return null;
       }
-      if(label.toLowerCase().endsWith("_id")) { //说明是外键
-        label = label.substring(0, label.length() - 3);
-      }
-      return StringUtils.toCamelCase(label);
+      
+      return StringUtils.toSnakeCase(label);
     } catch (SQLException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
     }
   }
+  
+  
+
 }
