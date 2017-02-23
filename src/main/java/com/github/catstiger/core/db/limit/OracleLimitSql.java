@@ -1,4 +1,4 @@
-package com.github.catstiger.core.db;
+package com.github.catstiger.core.db.limit;
 
 public class OracleLimitSql implements LimitSql {
 

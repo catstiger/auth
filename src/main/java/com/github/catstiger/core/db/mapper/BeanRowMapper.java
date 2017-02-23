@@ -19,7 +19,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.RowMapper;
 
 import com.github.catstiger.core.db.NamingStrategy;
-import com.github.catstiger.core.db.SQLFactory;
+import com.github.catstiger.core.db.SQLRequest;
 import com.github.catstiger.utils.ReflectUtils;
 /**
  * 一个{@link RowMapper}的实现类，可以将ResultSet中的数据装入一个JavaBean。他具有如下feature:
@@ -44,7 +44,7 @@ public class BeanRowMapper<T> implements RowMapper<T> {
   private Class<T> beanClass;
   private Map<String, ColumnTypesIndex> columnIndexMap = new HashMap<String, ColumnTypesIndex>(20);
   private RowHandler<T> rowHandler;
-  private NamingStrategy namingStrategy = SQLFactory.DEFAULT_NAME_STRATEGY;
+  private NamingStrategy namingStrategy = SQLRequest.DEFAULT_NAME_STRATEGY;
 
   /**
    * 构造一个BeanRowMapper的实例，传入要处理的Bean的类型

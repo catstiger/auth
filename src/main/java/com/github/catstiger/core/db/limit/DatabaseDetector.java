@@ -1,4 +1,4 @@
-package com.github.catstiger.core.db;
+package com.github.catstiger.core.db.limit;
 
 import java.sql.Connection;
 import java.sql.SQLException;

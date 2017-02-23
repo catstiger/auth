@@ -97,6 +97,14 @@ public final class Page implements Serializable {
   public void setStart(int start) {
     this.start = start;
   }
+  
+  public int getOffset() {
+    return start;
+  }
+
+  public void setOffset(int offset) {
+    this.start = offset;
+  }
 
   public int getLimit() {
     return limit;

@@ -28,7 +28,7 @@ public final class ORMHelper {
   private NamingStrategy namingStrategy;
   
   private ORMHelper() {
-    namingStrategy = SQLFactory.DEFAULT_NAME_STRATEGY;
+    namingStrategy = SQLRequest.DEFAULT_NAME_STRATEGY;
   }
   
   private ORMHelper(NamingStrategy namingStrategy) {
@@ -36,7 +36,7 @@ public final class ORMHelper {
   }
   
   public static ORMHelper getInstance() {
-    String key = SQLFactory.DEFAULT_NAME_STRATEGY.getClass().getSimpleName();
+    String key = SQLRequest.DEFAULT_NAME_STRATEGY.getClass().getSimpleName();
     if(!instances.containsKey(key)) {
       ORMHelper instance = new ORMHelper();
       instances.put(key, instance);

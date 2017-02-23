@@ -39,5 +39,13 @@ public class SimpleNamingStrategy  extends AbstractNamingStrategy {
       throw new RuntimeException(e);
     }
   }
+  
+  @Override
+  public String columnLabel(String column) {
+    if(StringUtils.isBlank(column)) {
+      return StringUtils.EMPTY;
+    }
+    return column.toLowerCase();
+  }
 
 }

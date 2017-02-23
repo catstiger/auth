@@ -34,6 +34,12 @@ public class SnakeCaseNamingStrategy  extends AbstractNamingStrategy {
     }
   }
   
-  
-
+  @Override
+  public String columnLabel(String column) {
+    if(StringUtils.isBlank(column)) {
+      return StringUtils.EMPTY;
+    }
+    
+    return StringUtils.toSnakeCase(column);
+  }
 }

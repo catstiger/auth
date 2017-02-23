@@ -8,8 +8,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.github.catstiger.auth.model.SmsRecord;
 import com.github.catstiger.core.db.SQLFactory;
-import com.github.catstiger.core.db.SQLFactory.SQLReady;
-import com.github.catstiger.core.db.SQLFactory.SQLRequest;
+import com.github.catstiger.core.db.SQLReady;
+import com.github.catstiger.core.db.SQLRequest;
 import com.github.catstiger.core.db.id.IdGen;
 
 import reactor.core.support.Assert;
@@ -37,7 +37,7 @@ public class SmsRecordDao {
   public SmsRecord insert(SmsRecord entity) {
     entity.setId(idGen.nextId());
     SQLRequest sqlRequest = new SQLRequest(entity).usingAlias(false);
-    SQLReady sqlReady = SQLFactory.getInstance().insertDynamic(sqlRequest);
+    SQLReady sqlReady = SQLFactory.getInstance().insert(sqlRequest);
     jdbcTemplate.update(sqlReady.getSql(), sqlReady.getArgs());
     
     return entity;

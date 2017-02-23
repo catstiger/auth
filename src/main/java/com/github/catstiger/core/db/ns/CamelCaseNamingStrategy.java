@@ -35,4 +35,13 @@ public class CamelCaseNamingStrategy  extends AbstractNamingStrategy {
       throw new RuntimeException(e);
     }
   }
+  
+  @Override
+  public String columnLabel(String column) {
+    if(StringUtils.isBlank(column)) {
+      return StringUtils.EMPTY;
+    }
+    
+    return StringUtils.toCamelCase(column);
+  }
 }

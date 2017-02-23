@@ -26,6 +26,11 @@ public interface NamingStrategy {
   public String columnLabel(ResultSet rs, int columnIndex);
   
   /**
+   * 根据原始的Column Name，获得规则中的的ColumnLabel
+   */
+  public String columnLabel(String column);
+  
+  /**
    * 根据Field Name，得到columnName, 用于生成SQL
    */
   public String columnName(Class<?> entityClass, String field);
