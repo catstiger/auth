@@ -1,7 +1,7 @@
 package com.github.catstiger.core.db;
 
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,21 +28,21 @@ public final class SQLRequest {
   
   Class<?> entityClass;
   BaseEntity entity;
-  List<String> includes;
-  List<String> excludes;
+  List<String> includes = new ArrayList<String>(10);
+  List<String> excludes = new ArrayList<String>(10);
   boolean usingAlias = false;
   boolean namedParams = false;
   NamingStrategy namingStrategy = DEFAULT_NAME_STRATEGY;
   boolean includesNull = false;
   boolean byId = false;
   LimitSql limitSql = DEFAULT_LIMIT_SQL;
-  Map<String, Object> parameters = new LinkedHashMap<>(10);
+  Map<String, String> sorts = new LinkedHashMap<>(5);
   
   public SQLRequest(Class<?> entityClass) {
     this.entity = null;
     this.entityClass = entityClass;
-    includes = Collections.emptyList();
-    excludes = Collections.emptyList();
+    //includes = new ArrayList<String>(10);
+    //excludes = new ArrayList<String>(10);
     usingAlias = false;
     namingStrategy = DEFAULT_NAME_STRATEGY;
     includesNull = false;
@@ -56,8 +56,8 @@ public final class SQLRequest {
     }
     this.entity = entity;
     this.entityClass = entity.getClass();
-    includes = Collections.emptyList();
-    excludes = Collections.emptyList();
+    //includes = new ArrayList<String>(10);
+    //excludes = new ArrayList<String>(10);
     usingAlias = false;
     namingStrategy = DEFAULT_NAME_STRATEGY;
     includesNull = false;
@@ -96,11 +96,8 @@ public final class SQLRequest {
    */
   public SQLRequest includes(String... includes) {
     if(includes != null && includes.length > 0) {
-      this.includes = Arrays.asList(includes);
-    } else {
-      this.includes = Collections.emptyList();
+      this.includes.addAll(Arrays.asList(includes));
     }
-    
     return this;
   }
   
@@ -111,10 +108,8 @@ public final class SQLRequest {
    */
   public SQLRequest excludes(String... excludes) {
     if(excludes != null && excludes.length > 0) {
-      this.excludes = Arrays.asList(excludes);
-    } else {
-      this.excludes = Collections.emptyList();
-    }
+      this.excludes.addAll(Arrays.asList(excludes));
+    } 
     return this;
   }
   
@@ -172,25 +167,22 @@ public final class SQLRequest {
   }
   
   /**
-   * 批量添加查询参数
-   * @param params 参数名和参数值组成的Map, key为字段名或者对应的entity的属性名
-   * @return SQLRequest
+   * 新增一组排序，Key为字段名，Value为desc/asc
    */
-  public SQLRequest addParameters(Map<String, Object> params) {
-    if(params != null && !params.isEmpty()) {
-      this.parameters.putAll(params);
+  public SQLRequest setSorts(Map<String, String> sorts) {
+    if(sorts != null && !sorts.isEmpty()) {
+      this.sorts.putAll(sorts);
     }
-    
     return this;
   }
   
   /**
-   * 添加一个查询参数
-   * @param name 参数名，可以是字段名或者entity的属性名
-   * @param value 参数值
+   * 新增一个排序条件
+   * @param columnName 字段名、属性名
+   * @param direction 方向，asc\desc
    */
-  public SQLRequest addParameter(String name, Object value) {
-    this.parameters.put(name, value);
+  public SQLRequest addSort(String columnName, String direction) {
+    this.sorts.put(columnName, direction);
     return this;
   }
   
@@ -301,7 +293,7 @@ public final class SQLRequest {
       buf.append(Joiner.on("_").join(excludes));
     }
     
-    buf.append(includesNull).append(byId);
+    buf.append(includesNull).append(usingAlias).append(byId);
     buf.append(namingStrategy.getClass().getSimpleName());
     
     return buf.toString();

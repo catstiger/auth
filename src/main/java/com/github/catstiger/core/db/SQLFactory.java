@@ -18,7 +18,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.persistence.Entity;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
 import javax.persistence.Transient;
 
 import org.springframework.util.Assert;
@@ -76,6 +78,7 @@ public final class SQLFactory {
    *     <li>表名，字段名，全部小写，关键字大写。</li>
    * </ul>
    * @param sqlRequest SQL请求对象
+   * @param includesForeign 是否包括外键字段，可以处理一级外键。
    * @return SQL
    */
   public SQLReady select(SQLRequest sqlRequest) {
@@ -85,22 +88,17 @@ public final class SQLFactory {
     if(sqlObj != null) {
       return new SQLReady(sqlObj, new Object[]{}, sqlRequest.limitSql); 
     }
-    Collection<ColField> colFields = columns(sqlRequest);
+    Collection<ColField> colFields = columns(sqlRequest, false); //TODO
     
-    String alias = null;
     String tablename = sqlRequest.namingStrategy.tablename(sqlRequest.entityClass);
-    //表名别名
-    if(sqlRequest.usingAlias) {
-      alias = sqlRequest.namingStrategy.tableAlias(sqlRequest.entityClass);
-      tablename += (" " + alias);
-    }
+    
     
     final StringBuilder sqlBuf = new StringBuilder(1000).append("SELECT ");
     for(Iterator<ColField> itr = colFields.iterator(); itr.hasNext();) {
       ColField colField = itr.next();
-      
       //属性名作为别名
       if(sqlRequest.usingAlias) {
+        String alias = sqlRequest.namingStrategy.tableAlias(colField.declaringClass);
         sqlBuf.append(alias).append(".").append(colField.col)
         .append(" AS ").append(sqlRequest.namingStrategy.columnLabel(colField.fieldname));
       } else { //不使用别名
@@ -114,7 +112,7 @@ public final class SQLFactory {
     
     if(sqlRequest.byId) {
       ColField primary = findPrimary(colFields);
-      String idCol = (primary != null ? primary.col : "id");
+      String idCol = (primary != null ? primary.col : "id"); String alias = ""; //TODO
       sqlBuf.append(" WHERE ").append(sqlRequest.usingAlias ? alias + "." :  "").append(idCol).append("=");
       
       if(sqlRequest.namedParams) {
@@ -147,9 +145,8 @@ public final class SQLFactory {
       throw new java.lang.IllegalArgumentException("给出的实体类不可为空。");
     }
     ORMHelper ormHelper = ORMHelper.getInstance(sqlRequest.namingStrategy);
-    Class<?> entityClass = sqlRequest.entityClass;
     
-    Collection<ColField> colFields = columns(sqlRequest);
+    Collection<ColField> colFields = columns(sqlRequest, false); //TODO
     List<String> sqls = new ArrayList<>(colFields.size()); //存SQL片段
     List<Object> args = new ArrayList<>(colFields.size()); //存参数值
     Map<String, Object> namedParams = new HashMap<>(colFields.size()); //存参数值
@@ -157,7 +154,7 @@ public final class SQLFactory {
     for(Iterator<ColField> itr = colFields.iterator(); itr.hasNext();) {
       ColField colField = itr.next();
       
-      Field field = ReflectUtils.findField(entityClass, colField.getFieldname());
+      Field field = colField.getField();
       Object value = getField(field, sqlRequest.entity);
       if(value == null) {
         continue;
@@ -232,11 +229,6 @@ public final class SQLFactory {
     }
   }
   
-  public SQLReady conditionsOfParameters (SQLRequest sqlRequest) {
-    //TODO
-    return null;
-  }
-  
   /**
    * 根据给定的实体类，构造一个SQL INSERT语句，
    * 如果给出的SQLRequest对象中，namedParams为<code>true</code>，则返回带有参数的SQL，数据使用MAP封装，否则返回带有?的SQL，数据采用数组封装。
@@ -255,7 +247,7 @@ public final class SQLFactory {
     }
     Class<?> entityClass = sqlRequest.entityClass;
     String tablename = sqlRequest.namingStrategy.tablename(entityClass);
-    Collection<ColField> colFields = columns(sqlRequest);
+    Collection<ColField> colFields = columns(sqlRequest, false);
     
     List<Object> args = new ArrayList<Object>(colFields.size()); //使用？做占位符
     Map<String, Object> namedParams = new LinkedHashMap<>(colFields.size()); //使用别名做占位符
@@ -266,7 +258,7 @@ public final class SQLFactory {
     
     for(Iterator<ColField> itr = colFields.iterator(); itr.hasNext();) {
       ColField colField = itr.next();
-      Field field = ReflectUtils.findField(entityClass, colField.getFieldname());
+      Field field = colField.getField();
       Object arg = getField(field, entity);
       if(arg == null && !sqlRequest.includesNull) { //不包括NULL字段
         continue;
@@ -329,7 +321,7 @@ public final class SQLFactory {
     Class<?> entityClass = sqlRequest.entityClass;
     String tablename = sqlRequest.namingStrategy.tablename(entityClass);
     
-    Collection<ColField> colFields = columns(sqlRequest);
+    Collection<ColField> colFields = columns(sqlRequest, false);
     if(colFields == null || colFields.isEmpty()) {
       throw new java.lang.IllegalArgumentException("无法获取实体类的属性。");
     }
@@ -338,7 +330,7 @@ public final class SQLFactory {
     List<String> sqls = new ArrayList<>(colFields.size()); //存放col=?
     
     for(ColField cf : colFields) {
-      Field field = ReflectUtils.findField(entityClass, cf.getFieldname());
+      Field field = cf.getField();
       if(ormHelper.isPrimaryKey(field)) { //主键忽略
         continue;
       }
@@ -402,14 +394,14 @@ public final class SQLFactory {
    * @param sqlRequest 给定实SQLRequest
    * @return List of {@link ColField}
    */
-  public Collection<ColField> columns(SQLRequest sqlRequest) {
-    String key = colKey(sqlRequest);
+  public Collection<ColField> columns(SQLRequest sqlRequest, boolean includesForeign) {
+    String key = colKey(sqlRequest, includesForeign);
     Collection<ColField> colFields = columnCache.get(key);
     if(colFields != null) {
       return colFields;
     }
     
-    colFields = getColFields(sqlRequest);
+    colFields = getColFields(sqlRequest, includesForeign);
     columnCache.put(key, colFields);
     return colFields;
   }
@@ -509,13 +501,13 @@ public final class SQLFactory {
   }
   
   
-  private String colKey(SQLRequest sqlRequest) {
-    return DigestUtils.md5DigestAsHex(sqlRequest.toString().getBytes(Charset.forName("UTF-8")));
+  private String colKey(SQLRequest sqlRequest, boolean includesForeign) {
+    return DigestUtils.md5DigestAsHex((sqlRequest.toString() + includesForeign).getBytes(Charset.forName("UTF-8")));
   }
   
  
   
-  private List<ColField> getColFields(SQLRequest sqlRequest) {
+  private List<ColField> getColFields(SQLRequest sqlRequest, boolean includesForeign) {
     PropertyDescriptor[] propertyDescriptors = ReflectUtils.getPropertyDescriptors(sqlRequest.entityClass);
     if(propertyDescriptors == null) {
       throw new RuntimeException("无法获取PropertyDescriptor " + sqlRequest.entityClass.getName());
@@ -555,10 +547,26 @@ public final class SQLFactory {
         continue;
       }
       //列名，根据字段名转换得到，与表生成的规则相同
-      String columnName = sqlRequest.namingStrategy.columnName(sqlRequest.entityClass, fieldname); //EntityBean属性名小写作为字段名
+      String columnName = sqlRequest.namingStrategy.columnName(sqlRequest.entityClass, fieldname);      
+      boolean isPrimary = (getAnnotation(field, Id.class) != null);
+      Class<?> type = field.getType();
+      Class<?> declaringClass = field.getDeclaringClass();
+      boolean isForeign = (getAnnotation(field, JoinColumn.class) != null && type.getAnnotation(Entity.class) != null);
+      //处理外键中的字段
+      if(isForeign && includesForeign) {
+          SQLRequest sr = new SQLRequest(type)
+              .includes(sqlRequest.includes.toArray(new String[]{}))
+              .excludes(sqlRequest.excludes.toArray(new String[]{}))
+              .usingAlias(sqlRequest.usingAlias)
+              .includesNull(sqlRequest.includesNull);
+          List<ColField> fkFields = getColFields(sr, false);
+          colFields.addAll(fkFields);
+      } else {
+        ColField colField = new ColField(columnName, field, isPrimary, isForeign, type, declaringClass);
+        colFields.add(colField);
+      }
       
-      ColField colField = new ColField(columnName, fieldname, readMethod.getAnnotation(Id.class) != null);
-      colFields.add(colField);
+      
     }
     
     colFields.sort(new Comparator<ColField>() {
@@ -734,7 +742,7 @@ public final class SQLFactory {
     sqls.add(sql.toString());
   }
   
-  private <T extends Annotation> T getAnnotation(Field field, Class<T> annotationClass) {
+  private static <T extends Annotation> T getAnnotation(Field field, Class<T> annotationClass) {
     Assert.notNull(field);
     ORMHelper ormHelper = ORMHelper.getInstance();
     
@@ -759,69 +767,68 @@ public final class SQLFactory {
     }
     return null;
   }
- 
+  
   
   /**
    * 用于装载数据库字段col, 和实体类属性field的对应关系
    * @author leesam
    *
    */
+  @SuppressWarnings("unused") //TODO
   public static final class ColField implements java.io.Serializable {
     private String col;
     private String fieldname;
     private Field field;
     private boolean isPrimary = false;
     
+    private boolean isForeign = false;
+    private Class<?> type;
+    private Class<?> declaringClass;
+    
     public ColField() {
       
     }
     
-    public ColField(String col, String fieldname, boolean isPrimary) {
+    public ColField(String col, String fieldname, boolean isPrimary, boolean isForeign, Class<?> type, Class<?> declaringClass) {
       this.col = col;
       this.fieldname = fieldname;
       this.isPrimary = isPrimary;
+      this.isForeign = isForeign;
+      this.type = type;
+      this.declaringClass = declaringClass;
+      if(declaringClass != null) {
+        field = ReflectUtils.findField(declaringClass, fieldname);
+      }
+      if(type == null && field != null) {
+        type = field.getType();
+      }
     }
     
-    public ColField(String col, Field field, boolean isPrimary) {
+    public ColField(String col, Field field, boolean isPrimary, boolean isForeign, Class<?> type, Class<?> declaringClass) {
       this.col = col;
       this.field = field;
+      this.isForeign = isForeign;
+      this.type = type;
+      this.declaringClass = declaringClass;
       if(field != null) {
         this.fieldname = field.getName();
+        if(declaringClass == null) {
+          declaringClass = field.getDeclaringClass();
+        }
+      }
+      if(type == null && field != null) {
+        type = field.getType();
       }
       this.isPrimary = isPrimary;
     }
-
-    public String getCol() {
-      return col;
-    }
-
-    public String getFieldname() {
-      return fieldname;
-    }
-
-    public boolean isPrimary() {
-      return isPrimary;
-    }
-
-    public void setCol(String col) {
-      this.col = col;
-    }
-
-    public void setFieldname(String fieldname) {
-      this.fieldname = fieldname;
-    }
-
-    public void setPrimary(boolean isPrimary) {
-      this.isPrimary = isPrimary;
-    }
-
+    
     public Field getField() {
+      if(this.field == null && this.declaringClass != null) {
+        this.field = ReflectUtils.findField(this.declaringClass, this.fieldname);
+      }
       return field;
     }
-
-    public void setField(Field field) {
-      this.field = field;
-    }
+   
   }
 
   

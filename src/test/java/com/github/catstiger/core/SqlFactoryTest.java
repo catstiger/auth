@@ -6,11 +6,14 @@ import java.util.Date;
 import org.junit.Test;
 import org.springframework.util.Assert;
 
+import com.github.catstiger.auth.model.SysUser;
+import com.github.catstiger.auth.model.UserApp;
 import com.github.catstiger.core.db.SQLFactory;
 import com.github.catstiger.core.db.SQLReady;
 import com.github.catstiger.core.db.SQLRequest;
 import com.github.catstiger.core.db.model.TestDbModel;
 import com.github.catstiger.core.db.ns.AbbreviationNamingStrategy;
+import com.github.catstiger.utils.StringUtils;
 
 public class SqlFactoryTest {
   @Test
@@ -38,6 +41,17 @@ public class SqlFactoryTest {
     
     SQLRequest sqlRequest1 = new SQLRequest(tdm).namingStrategy(new AbbreviationNamingStrategy()).usingAlias(true);
     sql = SQLFactory.getInstance().select(sqlRequest1).getSql();
+    System.out.println(sql);
+    
+    UserApp app = new UserApp();
+    SysUser su = new SysUser();
+    su.setId(9884234L);
+    app.setId(224554L);
+    app.setOwner(su);
+    app.setDescn(StringUtils.random(12));
+    
+    SQLRequest sr = new SQLRequest(app).usingAlias(true);
+    sql = SQLFactory.getInstance().select(sr).getSql();
     System.out.println(sql);
   }
   @Test

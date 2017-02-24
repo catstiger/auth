@@ -2,7 +2,6 @@ package com.github.catstiger.core.db.ns;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -14,11 +13,11 @@ import javax.persistence.Table;
 import com.github.catstiger.core.db.NamingStrategy;
 import com.github.catstiger.utils.ReflectUtils;
 import com.github.catstiger.utils.StringUtils;
-import com.google.common.base.Splitter;
 
 public abstract class AbstractNamingStrategy implements NamingStrategy {
   public static Map<String, String> tablenameCache = new ConcurrentHashMap<>(64);
   public static Map<String, String> colnameCache = new ConcurrentHashMap<>(64);
+  public static Map<String, String> aliasCache = new ConcurrentHashMap<>(64);
   /**
    * 根据@Table标注获取表名，如果没有标注，则取类名的Snake Case作为表名
    */
@@ -49,13 +48,13 @@ public abstract class AbstractNamingStrategy implements NamingStrategy {
    */
   @Override
   public String tableAlias(Class<?> entityClass) {
-    Iterable<String> iterable = Splitter.on("_").split(tablename(entityClass));
-    StringBuilder alias = new StringBuilder(10);
-    for(Iterator<String> itr = iterable.iterator(); itr.hasNext();) {
-      alias.append(itr.next().charAt(0));
+    if(aliasCache.containsKey(entityClass.getName())) {
+      return aliasCache.get(entityClass.getName());
+    } else {
+      String alias = StringUtils.toCamelCase(entityClass.getSimpleName());
+      aliasCache.put(entityClass.getName(), alias);
+      return alias;
     }
-    
-    return alias.toString().toLowerCase();
   }
 
   @Override

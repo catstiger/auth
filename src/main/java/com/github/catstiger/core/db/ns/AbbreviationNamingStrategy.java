@@ -55,12 +55,23 @@ public class AbbreviationNamingStrategy extends AbstractNamingStrategy {
     return abbr.toString().toLowerCase();
   }
   
-  public static void main(String[]args) {
-    AbbreviationNamingStrategy ans = new AbbreviationNamingStrategy();
+  @Override
+  public String tableAlias(Class<?> entityClass) {
+    if(aliasCache.containsKey(entityClass.getName())) {
+      return aliasCache.get(entityClass.getName());
+    } else {
+      Iterable<String> iterable = Splitter.on("_").split(tablename(entityClass));
+      StringBuilder alias = new StringBuilder(10);
+      for(Iterator<String> itr = iterable.iterator(); itr.hasNext();) {
+        alias.append(itr.next().charAt(0));
+      }
+      
+      String a = alias.toString().toLowerCase();
+      aliasCache.put(entityClass.getName(), a);
+      return a;
+    }
     
-    System.out.println(ans.columnLabel("abc_ttt"));
-    System.out.println(ans.columnLabel("abc-mm"));
-    System.out.println(ans.columnLabel("camelCase"));
+    
   }
 
 }
