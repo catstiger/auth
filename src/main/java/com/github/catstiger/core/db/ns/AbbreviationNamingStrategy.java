@@ -57,8 +57,9 @@ public class AbbreviationNamingStrategy extends AbstractNamingStrategy {
   
   @Override
   public String tableAlias(Class<?> entityClass) {
-    if(aliasCache.containsKey(entityClass.getName())) {
-      return aliasCache.get(entityClass.getName());
+    String key = new StringBuilder(150).append(entityClass.getName()).append("_").append(getClass().getName()).toString();
+    if(aliasCache.containsKey(key)) {
+      return aliasCache.get(key);
     } else {
       Iterable<String> iterable = Splitter.on("_").split(tablename(entityClass));
       StringBuilder alias = new StringBuilder(10);
@@ -67,7 +68,7 @@ public class AbbreviationNamingStrategy extends AbstractNamingStrategy {
       }
       
       String a = alias.toString().toLowerCase();
-      aliasCache.put(entityClass.getName(), a);
+      aliasCache.put(key, a);
       return a;
     }
     

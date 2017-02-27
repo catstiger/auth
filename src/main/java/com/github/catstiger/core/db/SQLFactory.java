@@ -42,7 +42,6 @@ import com.google.common.base.Joiner;
 
 public final class SQLFactory {
   private static Map<String, String> sqlCache = new ConcurrentHashMap<String, String>();
-  private static Map<String, Collection<ColField>> columnCache = new ConcurrentHashMap<String, Collection<ColField>>();
   /**
    * 缺省的IdGen实现，不支持集群模式，集群下请使用SnowFlakeIdGen.
    */
@@ -78,54 +77,83 @@ public final class SQLFactory {
    *     <li>表名，字段名，全部小写，关键字大写。</li>
    * </ul>
    * @param sqlRequest SQL请求对象
-   * @param includesForeign 是否包括外键字段，可以处理一级外键。
+   * @param supportsJoin 是否包括外键字段JOIN查询，可以处理一级外键。
    * @return SQL
    */
-  public SQLReady select(SQLRequest sqlRequest) {
-    String key = sqlKey(sqlRequest, "select");
+  public SQLReady select(SQLRequest sqlRequest, boolean supportsJoin) {
+    String key = sqlKey(sqlRequest, "select", supportsJoin);
     //从缓存中取得SQL
     String sqlObj = sqlCache.get(key);
     if(sqlObj != null) {
       return new SQLReady(sqlObj, new Object[]{}, sqlRequest.limitSql); 
     }
-    Collection<ColField> colFields = columns(sqlRequest, false); //TODO
-    
+    Collection<ColField> colFields = columns(sqlRequest, supportsJoin);
     String tablename = sqlRequest.namingStrategy.tablename(sqlRequest.entityClass);
     
-    
     final StringBuilder sqlBuf = new StringBuilder(1000).append("SELECT ");
+    
+    List<String> sqlSegs = new ArrayList<String>(colFields.size()); //一个一个SQL片段，最后join为完整的字段列表
+    //SELECT后的字段列表
     for(Iterator<ColField> itr = colFields.iterator(); itr.hasNext();) {
       ColField colField = itr.next();
+      if(colField.isForeign) {
+        continue;
+      }
+      StringBuilder sqlSeg = new StringBuilder(100);
       //属性名作为别名
       if(sqlRequest.usingAlias) {
-        String alias = sqlRequest.namingStrategy.tableAlias(colField.declaringClass);
-        sqlBuf.append(alias).append(".").append(colField.col)
+        String alias = sqlRequest.namingStrategy.tableAlias(colField.ownerClass);  //字段所在表别名
+        sqlSeg.append(alias).append(".").append(colField.col)
         .append(" AS ").append(sqlRequest.namingStrategy.columnLabel(colField.fieldname));
       } else { //不使用别名
-        sqlBuf.append(colField.col);
+        sqlSeg.append(colField.col);
       }
-      if(itr.hasNext()) {
-        sqlBuf.append(",\n");
+      sqlSegs.add(sqlSeg.toString());
+    }
+    sqlBuf.append(Joiner.on(",\n").join(sqlSegs));
+    
+    //FROM后面的主表
+    sqlBuf.append(" \n FROM ").append(tablename);
+    String mainAlias = sqlRequest.namingStrategy.tableAlias(sqlRequest.entityClass);  //字段所在表别名
+    sqlBuf.append(" ").append(mainAlias).append(" \n");
+    
+    ColField primary = findPrimary(colFields);
+    
+    //关联查询
+    if(supportsJoin) {
+      for(Iterator<ColField> itr = colFields.iterator(); itr.hasNext();) {
+        ColField colField = itr.next();
+        if(!colField.isForeign) {
+          continue;
+        }
+        sqlBuf.append(" JOIN \n")
+        .append(colField.tablename)
+        .append(" ")
+        .append(colField.alias)
+        .append(" on (").append(colField.alias).append(".").append(colField.fkPrimaryColumn)
+        .append("=")
+        .append(mainAlias).append(".").append(colField.col).append(") \n");
       }
     }
-    sqlBuf.append(" FROM ").append(tablename);
     
     if(sqlRequest.byId) {
-      ColField primary = findPrimary(colFields);
-      String idCol = (primary != null ? primary.col : "id"); String alias = ""; //TODO
-      sqlBuf.append(" WHERE ").append(sqlRequest.usingAlias ? alias + "." :  "").append(idCol).append("=");
+      String idCol = (primary != null ? primary.col : "id");
       
+      sqlBuf.append(" WHERE ").append(sqlRequest.usingAlias ? mainAlias + "." :  "").append(idCol).append("=");
       if(sqlRequest.namedParams) {
-        String idField = (primary != null ? primary.fieldname : "id");
+        String idField = (primary != null ? mainAlias + "." + primary.fieldname : mainAlias + ".id");
         sqlBuf.append(":").append(idField);
       } else {
         sqlBuf.append("?");
       }
     }
+    sqlBuf.append("\n");
     sqlCache.put(key, sqlBuf.toString()); //装入缓存
     
     return new SQLReady(sqlBuf.toString(), new Object[]{}, sqlRequest.limitSql); 
   }
+  
+  
   
   /**
    * 根据Entity中的实体类的实例，创建一个SQL查询的条件: 
@@ -140,46 +168,52 @@ public final class SQLFactory {
    * @param fullMatches 字符串查询使用全匹配，即%string%的形式，这种形式不会利用索引！
    * @return
    */
-  public SQLReady conditions(SQLRequest sqlRequest) {
+  public SQLReady conditions(SQLRequest sqlRequest, boolean supportsJoin) {
     if(sqlRequest.entity == null) {
       throw new java.lang.IllegalArgumentException("给出的实体类不可为空。");
     }
     ORMHelper ormHelper = ORMHelper.getInstance(sqlRequest.namingStrategy);
     
-    Collection<ColField> colFields = columns(sqlRequest, false); //TODO
+    Collection<ColField> colFields = columns(sqlRequest, supportsJoin);
     List<String> sqls = new ArrayList<>(colFields.size()); //存SQL片段
     List<Object> args = new ArrayList<>(colFields.size()); //存参数值
     Map<String, Object> namedParams = new HashMap<>(colFields.size()); //存参数值
     
     for(Iterator<ColField> itr = colFields.iterator(); itr.hasNext();) {
       ColField colField = itr.next();
+      if(colField.isForeign) {
+        continue;
+      }
       
       Field field = colField.getField();
-      Object value = getField(field, sqlRequest.entity);
+      Object value = null;
+      if(colField.ownerValue != null) {
+        value = getField(field, colField.ownerValue);
+      }
       if(value == null) {
         continue;
       }
       
       //处理主键
       if(ormHelper.isPrimaryKey(field)) {
-        doPrimaryKey(sqlRequest, field, value, sqls, args, namedParams);
+        doPrimaryKey(sqlRequest, colField, value, sqls, args, namedParams);
         continue;
       }
       //处理字符串
       if(ClassUtils.isAssignable(field.getType(), String.class)) {
         FullText ftAnn = getAnnotation(field, FullText.class); //全文检索
         if(ftAnn != null) {
-          doFullText(sqlRequest, field, value, ftAnn, sqls, args, namedParams);
+          doFullText(sqlRequest, colField, value, ftAnn, sqls, args, namedParams);
           continue;
         }
         FullMatches fmAnn = getAnnotation(field, FullMatches.class); //全匹配，代替LIKE %%
         if(fmAnn != null) {
-          doFullMatches(sqlRequest, field, value, ftAnn, sqls, args, namedParams);
+          doFullMatches(sqlRequest, colField, value, ftAnn, sqls, args, namedParams);
           continue;
         }
         //Like查询
         if(fmAnn == null && ftAnn == null) {
-          doLike(sqlRequest, field, value, sqls, args, namedParams);
+          doLike(sqlRequest, colField, value, sqls, args, namedParams);
           continue;
         }
       }
@@ -187,7 +221,7 @@ public final class SQLFactory {
       if(ClassUtils.isAssignable(field.getType(), Number.class)) {
         RangeQuery rqAnn = getAnnotation(field, RangeQuery.class);
         if(rqAnn != null) {
-          doRangeQuery(sqlRequest, field, value, rqAnn, sqls, args, namedParams);
+          doRangeQuery(sqlRequest, colField, value, rqAnn, sqls, args, namedParams);
           continue;
         }
       }
@@ -195,7 +229,7 @@ public final class SQLFactory {
       if(ClassUtils.isAssignable(field.getType(), Date.class)) {
         RangeQuery rqAnn = getAnnotation(field, RangeQuery.class);
         if(rqAnn != null) {
-          doRangeQuery(sqlRequest, field, value, rqAnn, sqls, args, namedParams);
+          doRangeQuery(sqlRequest, colField, value, rqAnn, sqls, args, namedParams);
           continue;
         }
       }
@@ -394,15 +428,8 @@ public final class SQLFactory {
    * @param sqlRequest 给定实SQLRequest
    * @return List of {@link ColField}
    */
-  public Collection<ColField> columns(SQLRequest sqlRequest, boolean includesForeign) {
-    String key = colKey(sqlRequest, includesForeign);
-    Collection<ColField> colFields = columnCache.get(key);
-    if(colFields != null) {
-      return colFields;
-    }
-    
-    colFields = getColFields(sqlRequest, includesForeign);
-    columnCache.put(key, colFields);
+  public Collection<ColField> columns(SQLRequest sqlRequest, boolean supportsJoin) {
+    Collection<ColField> colFields = getColFields(sqlRequest, supportsJoin);
     return colFields;
   }
   
@@ -495,19 +522,12 @@ public final class SQLFactory {
    * @param type SQL类型
    * @return 缓存Key
    */
-  private String sqlKey(SQLRequest sqlRequest, String type) {
-    StringBuilder keyBuilder = new StringBuilder(200).append(type).append(sqlRequest.toString());
+  private String sqlKey(SQLRequest sqlRequest, String type, boolean supportsJoin) {
+    StringBuilder keyBuilder = new StringBuilder(200).append(type).append(sqlRequest.toString()).append(supportsJoin);
     return DigestUtils.md5DigestAsHex(keyBuilder.toString().getBytes(Charset.forName("UTF-8")));
   }
   
-  
-  private String colKey(SQLRequest sqlRequest, boolean includesForeign) {
-    return DigestUtils.md5DigestAsHex((sqlRequest.toString() + includesForeign).getBytes(Charset.forName("UTF-8")));
-  }
-  
- 
-  
-  private List<ColField> getColFields(SQLRequest sqlRequest, boolean includesForeign) {
+  private List<ColField> getColFields(SQLRequest sqlRequest, boolean supportsJoin) {
     PropertyDescriptor[] propertyDescriptors = ReflectUtils.getPropertyDescriptors(sqlRequest.entityClass);
     if(propertyDescriptors == null) {
       throw new RuntimeException("无法获取PropertyDescriptor " + sqlRequest.entityClass.getName());
@@ -550,23 +570,62 @@ public final class SQLFactory {
       String columnName = sqlRequest.namingStrategy.columnName(sqlRequest.entityClass, fieldname);      
       boolean isPrimary = (getAnnotation(field, Id.class) != null);
       Class<?> type = field.getType();
-      Class<?> declaringClass = field.getDeclaringClass();
+      //Class<?> ownerClass = sqlRequest.entityClass;
       boolean isForeign = (getAnnotation(field, JoinColumn.class) != null && type.getAnnotation(Entity.class) != null);
       //处理外键中的字段
-      if(isForeign && includesForeign) {
-          SQLRequest sr = new SQLRequest(type)
-              .includes(sqlRequest.includes.toArray(new String[]{}))
-              .excludes(sqlRequest.excludes.toArray(new String[]{}))
-              .usingAlias(sqlRequest.usingAlias)
-              .includesNull(sqlRequest.includesNull);
-          List<ColField> fkFields = getColFields(sr, false);
-          colFields.addAll(fkFields);
+      if(isForeign && supportsJoin) {
+        ColField colField = new ColField(columnName, field, isPrimary, isForeign, type, sqlRequest.entityClass);
+        colField.tablename = sqlRequest.namingStrategy.tablename(colField.type);
+        String alias = sqlRequest.namingStrategy.tableAlias(colField.type);
+        int aliasCount = 0;
+        //检查有无重复的别名
+        for(ColField cf : colFields) {
+          if(cf.alias != null && cf.isForeign && cf.alias.startsWith(alias + "_")) {
+            aliasCount++;
+          }
+        }
+        colField.alias = alias + "_" + aliasCount; //外键的表的别名，要加下标，因为可能重复引用同一个表
+        //外键需要加载对应的entity
+        Object fkValue = null;
+        if(sqlRequest.entity != null) {
+          fkValue = this.getField(field, sqlRequest.entity);
+          if(fkValue == null) {
+            fkValue = ReflectUtils.instantiate(colField.type);
+            colField.ownerValue = sqlRequest.entity;
+          }
+        }
+        colFields.add(colField);
+        //关联表中的数据
+        SQLRequest sr = new SQLRequest(type)
+            .includes(sqlRequest.includes.toArray(new String[]{}))
+            .excludes(sqlRequest.excludes.toArray(new String[]{}))
+            .usingAlias(sqlRequest.usingAlias)
+            .includesNull(sqlRequest.includesNull);
+        
+        List<ColField> fkFields = getColFields(sr, false);
+        final Object foreignValue = fkValue;
+        fkFields.forEach(e -> {
+          e.ownerValue = foreignValue;
+        });
+        colFields.addAll(fkFields);
+
+        //外键关联字段，要保存对应表的主键
+        for(ColField fkcf : fkFields) {
+          if(fkcf.isPrimary) {
+            colField.fkPrimaryColumn = fkcf.col;
+            break;
+          }
+        }
       } else {
-        ColField colField = new ColField(columnName, field, isPrimary, isForeign, type, declaringClass);
+        ColField colField = new ColField(columnName, field, isPrimary, isForeign, type, sqlRequest.entityClass);
+        colField.tablename = sqlRequest.namingStrategy.tablename(colField.ownerClass);
+        colField.alias = sqlRequest.namingStrategy.tableAlias(colField.ownerClass);
+        
+        if(sqlRequest.entity != null) {
+          colField.ownerValue = sqlRequest.entity;
+        }
         colFields.add(colField);
       }
-      
-      
     }
     
     colFields.sort(new Comparator<ColField>() {
@@ -612,24 +671,22 @@ public final class SQLFactory {
     return value;
   }
   
-  private void doRangeQuery(SQLRequest sqlRequest, Field field, Object value, RangeQuery rqAnn, List<String> sqls, List<Object> args, Map<String, Object> namedParams) {
-    String tableAlias = sqlRequest.namingStrategy.tableAlias(sqlRequest.entityClass);
-    String colname = sqlRequest.namingStrategy.columnName(sqlRequest.entityClass, field);
+  private void doRangeQuery(SQLRequest sqlRequest, ColField colField, Object value, RangeQuery rqAnn, List<String> sqls, List<Object> args, Map<String, Object> namedParams) {
     //处理START
     String startFieldName = rqAnn.start();
     StringBuilder sql = new StringBuilder(100);
     if(sqlRequest.usingAlias) {
-      sql.append(tableAlias).append(".");
+      sql.append(colField.alias).append(".");
     } 
     
     if(StringUtils.isNotBlank(startFieldName)) {
-      Field startField = ReflectUtils.findField(field.getDeclaringClass(), startFieldName);
+      Field startField = ReflectUtils.findField(colField.ownerClass, startFieldName);
       if(startField == null) {
         throw new java.lang.RuntimeException("属性不存在 " + startFieldName);
       }
       Object startValue = getField(startField, sqlRequest.entity); //开始值
       if(startValue != null) {
-        sql.append(colname).append(rqAnn.greatAndEquals() ? ">=" : ">");
+        sql.append(colField.col).append(rqAnn.greatAndEquals() ? ">=" : ">");
         if(sqlRequest.namedParams) {
           sql.append(":").append(startFieldName);
           namedParams.put(startFieldName, startValue);
@@ -645,17 +702,17 @@ public final class SQLFactory {
     String endFieldName = rqAnn.end();
     StringBuilder sql2 = new StringBuilder(100);
     if(sqlRequest.usingAlias) {
-      sql2.append(tableAlias).append(".");
+      sql2.append(colField.alias).append(".");
     } 
     
     if(StringUtils.isNotBlank(endFieldName)) {
-      Field endField = ReflectUtils.findField(field.getDeclaringClass(), endFieldName);
+      Field endField = ReflectUtils.findField(colField.ownerClass, endFieldName);
       if(endField == null) {
         throw new java.lang.RuntimeException("属性不存在 " + startFieldName);
       }
       Object endValue = getField(endField, sqlRequest.entity); //结束值
       if(endValue != null) {
-        sql2.append(colname).append(rqAnn.lessAndEquals() ? "<=" : "<");
+        sql2.append(colField.col).append(rqAnn.lessAndEquals() ? "<=" : "<");
         if(sqlRequest.namedParams) {
           sql2.append(":").append(endFieldName);
           namedParams.put(endFieldName, endValue);
@@ -668,32 +725,28 @@ public final class SQLFactory {
     }
   }
   
-  private void doPrimaryKey(SQLRequest sqlRequest, Field field, Object value, List<String> sqls, List<Object> args, Map<String, Object> namedParams) {
-    String colname = sqlRequest.namingStrategy.columnName(sqlRequest.entityClass, field);
-    String tableAlias = sqlRequest.namingStrategy.tableAlias(sqlRequest.entityClass);
-    
+  private void doPrimaryKey(SQLRequest sqlRequest, ColField colField, Object value, List<String> sqls, List<Object> args, Map<String, Object> namedParams) {
     if(sqlRequest.namedParams) {
-      sqls.add((sqlRequest.usingAlias ? tableAlias + "." : "") + colname + "=:id");
+      sqls.add((sqlRequest.usingAlias ? colField.alias + "." : "") + colField.col + "=:id");
       namedParams.put("id", value);
     } else {
-      sqls.add((sqlRequest.usingAlias ? tableAlias + "." : "") + colname + "=?");
+      sqls.add((sqlRequest.usingAlias ? colField.alias + "." : "") + colField.col + "=?");
       args.add(value);
     }
   }
   
-  private void doFullText(SQLRequest sqlRequest, Field field, Object value, FullText ftAnn, List<String> sqls, List<Object> args, Map<String, Object> namedParams) {
+  private void doFullText(SQLRequest sqlRequest, ColField colField, Object value, FullText ftAnn, List<String> sqls, List<Object> args, Map<String, Object> namedParams) {
     String colname = ftAnn.relativeColumn(); //取得FullText设定的列
     if(StringUtils.isBlank(colname)) {
-      colname = sqlRequest.namingStrategy.columnName(sqlRequest.entityClass, field);
+      colname = colField.col;
     }
-    String tableAlias = sqlRequest.namingStrategy.tableAlias(sqlRequest.entityClass);
     
     StringBuilder sql = new StringBuilder(100).append(" MATCH(")
-        .append((sqlRequest.usingAlias ? tableAlias + "." : ""))
+        .append((sqlRequest.usingAlias ? colField.alias + "." : ""))
         .append(colname).append(") AGAINST (");
     if(sqlRequest.namedParams) {
-      sql.append(":").append(field.getName());
-      namedParams.put(field.getName(), value);
+      sql.append(":").append(colField.field.getName());
+      namedParams.put(colField.field.getName(), value);
     } else {
       sql.append("?");
       args.add(value);
@@ -703,14 +756,11 @@ public final class SQLFactory {
     sqls.add(sql.toString());
   }
   
-  private void doLike(SQLRequest sqlRequest, Field field, Object value, List<String> sqls, List<Object> args, Map<String, Object> namedParams) {
-    String colname = sqlRequest.namingStrategy.columnName(sqlRequest.entityClass, field);
-    String tableAlias = sqlRequest.namingStrategy.tableAlias(sqlRequest.entityClass);
-    
-    StringBuilder sql = new StringBuilder(100).append((sqlRequest.usingAlias ? tableAlias + "." : "")).append(colname).append(" LIKE ");
+  private void doLike(SQLRequest sqlRequest, ColField colField, Object value, List<String> sqls, List<Object> args, Map<String, Object> namedParams) {
+    StringBuilder sql = new StringBuilder(100).append((sqlRequest.usingAlias ? colField.alias + "." : "")).append(colField.col).append(" LIKE ");
     if(sqlRequest.namedParams) {
-      sql.append(":").append(field.getName());
-      namedParams.put(field.getName(), value.toString() + "%");
+      sql.append(":").append(colField.field.getName());
+      namedParams.put(colField.field.getName(), value.toString() + "%");
     } else {
       sql.append("?");
       args.add(value.toString() + "%");
@@ -718,24 +768,20 @@ public final class SQLFactory {
     sqls.add(sql.toString());
   }
   
-  private void doFullMatches(SQLRequest sqlRequest, Field field, Object value, FullText ftAnn, List<String> sqls, List<Object> args, Map<String, Object> namedParams) {
-    String colname = sqlRequest.namingStrategy.columnName(sqlRequest.entityClass, field);
-    String tableAlias = sqlRequest.namingStrategy.tableAlias(sqlRequest.entityClass);
-    //LOCATE(?, c.name) > 0
-    
+  private void doFullMatches(SQLRequest sqlRequest, ColField colField, Object value, FullText ftAnn, List<String> sqls, List<Object> args, Map<String, Object> namedParams) {
     StringBuilder sql = new StringBuilder(100).append(" LOCATE(");
     if(sqlRequest.namedParams) {
       sql.append(":")
-      .append(field.getName())
+      .append(colField.field.getName())
       .append(",")
-      .append((sqlRequest.usingAlias ? tableAlias + "." : ""))
-      .append(colname).append(") > 0 ");
-      namedParams.put(field.getName(), value);
+      .append((sqlRequest.usingAlias ? colField.alias + "." : ""))
+      .append(colField.col).append(") > 0 ");
+      namedParams.put(colField.field.getName(), value);
     } else {
       sql.append("?")
       .append(",")
-      .append((sqlRequest.usingAlias ? tableAlias + "." : ""))
-      .append(colname).append(") > 0");
+      .append((sqlRequest.usingAlias ? colField.alias + "." : ""))
+      .append(colField.col).append(") > 0");
       args.add(value);
     }
     
@@ -774,46 +820,48 @@ public final class SQLFactory {
    * @author leesam
    *
    */
-  @SuppressWarnings("unused") //TODO
   public static final class ColField implements java.io.Serializable {
+    public Object ownerValue;
+    public String fkPrimaryColumn;
     private String col;
     private String fieldname;
     private Field field;
     private boolean isPrimary = false;
-    
     private boolean isForeign = false;
     private Class<?> type;
-    private Class<?> declaringClass;
+    private Class<?> ownerClass;
+    private String tablename;
+    private String alias;
     
     public ColField() {
       
     }
     
-    public ColField(String col, String fieldname, boolean isPrimary, boolean isForeign, Class<?> type, Class<?> declaringClass) {
+    public ColField(String col, String fieldname, boolean isPrimary, boolean isForeign, Class<?> type, Class<?> ownerClass) {
       this.col = col;
       this.fieldname = fieldname;
       this.isPrimary = isPrimary;
       this.isForeign = isForeign;
       this.type = type;
-      this.declaringClass = declaringClass;
-      if(declaringClass != null) {
-        field = ReflectUtils.findField(declaringClass, fieldname);
+      this.ownerClass = ownerClass;
+      if(ownerClass != null) {
+        field = ReflectUtils.findField(ownerClass, fieldname);
       }
       if(type == null && field != null) {
         type = field.getType();
       }
     }
     
-    public ColField(String col, Field field, boolean isPrimary, boolean isForeign, Class<?> type, Class<?> declaringClass) {
+    public ColField(String col, Field field, boolean isPrimary, boolean isForeign, Class<?> type, Class<?> ownerClass) {
       this.col = col;
       this.field = field;
       this.isForeign = isForeign;
       this.type = type;
-      this.declaringClass = declaringClass;
+      this.ownerClass = ownerClass;
       if(field != null) {
         this.fieldname = field.getName();
-        if(declaringClass == null) {
-          declaringClass = field.getDeclaringClass();
+        if(ownerClass == null) {
+          ownerClass = field.getDeclaringClass();
         }
       }
       if(type == null && field != null) {
@@ -823,8 +871,8 @@ public final class SQLFactory {
     }
     
     public Field getField() {
-      if(this.field == null && this.declaringClass != null) {
-        this.field = ReflectUtils.findField(this.declaringClass, this.fieldname);
+      if(this.field == null && this.ownerClass != null) {
+        this.field = ReflectUtils.findField(this.ownerClass, this.fieldname);
       }
       return field;
     }

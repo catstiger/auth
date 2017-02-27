@@ -28,7 +28,7 @@ public abstract class AbstractNamingStrategy implements NamingStrategy {
     }
     Entity entity = entityClass.getAnnotation(Entity.class);
     if(entity == null) {
-      throw new RuntimeException("实体类必须用@Entity标注");  
+      throw new RuntimeException("实体类必须用@Entity标注:" + entityClass.getName());  
     }
     
     String tablename;

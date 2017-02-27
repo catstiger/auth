@@ -30,7 +30,7 @@ public class SysUserDao {
    * @return Instance of SysUser
    */
   public SysUser byMobile(String mobile) {
-    String sql = new StringBuilder(SQLFactory.getInstance().select(new SQLRequest(SysUser.class)).getSql())
+    String sql = new StringBuilder(SQLFactory.getInstance().select(new SQLRequest(SysUser.class), false).getSql())
         .append(" WHERE mobile=? limit 1").toString();
     log.debug("SysUserDao.byMobile: {}", sql);
     List<SysUser> users = jdbcTemplate.query(sql, new Object[]{mobile}, new BeanRowMapper<SysUser>(SysUser.class));

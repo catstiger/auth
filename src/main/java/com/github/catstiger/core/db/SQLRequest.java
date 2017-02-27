@@ -229,24 +229,29 @@ public final class SQLRequest {
    * @return SQLReady, 只有SQL，没有参数
    */
   public SQLReady select() {
-    return SQLFactory.getInstance().select(this);
+    return SQLFactory.getInstance().select(this, false);
+  }
+  
+  public SQLReady select(boolean supportsJoin) {
+    return SQLFactory.getInstance().select(this, supportsJoin);
   }
   
   /**
    * 生成根据ID查询的SQL语句
    */
   public SQLReady selectById() {
-    return SQLFactory.getInstance().select(this.byId(true));
+    return SQLFactory.getInstance().select(this.byId(true), false);
   }
   
   /**
-   * 根据给定的实体，生成查询SQL，生成的规则参考{@link #conditions()}
+   * 根据给定的实体，生成查询SQL，生成的规则参考{@link #conditions(boolean)}
+   * @param supportsJoin 是否支持外键关联
    */
-  public SQLReady selectBySample() {
+  public SQLReady selectBySample(boolean supportsJoin) {
     SQLFactory sqlFactory = SQLFactory.getInstance();
     this.byId = false;
-    String select = sqlFactory.select(this).getSql();
-    SQLReady sqlReady = SQLFactory.getInstance().conditions(this);
+    String select = sqlFactory.select(this, supportsJoin).getSql();
+    SQLReady sqlReady = SQLFactory.getInstance().conditions(this, supportsJoin);
     
     StringBuilder sql = new StringBuilder(300).append(select)
         .append(" WHERE ");
@@ -261,7 +266,19 @@ public final class SQLRequest {
     
     return sqlReady;
   }
+  /**
+   * 根据给定的实体，生成查询SQL，生成的规则参考{@link #conditions()}，不支持外键关联
+   */
+  public SQLReady selectBySample() {
+    return selectBySample(false);
+  }
   
+  /**
+   * 构建查询条件及其参数，不支持外键关联
+   */
+  public SQLReady conditions() {
+    return SQLFactory.getInstance().conditions(this, false);
+  }
   /**
    * 根据Entity中的实体类的实例，创建一个SQL查询的条件: 
    * <ul>
@@ -271,11 +288,12 @@ public final class SQLRequest {
    *    <li>对于数字类型和日期类型，如果被@RangeQuery标注，则采用范围查询，对应的字段名由@RangeQuery设定，如果没有设定，则不采用范围查询</li>
    *    <li>所有查询条件之间的关系，都是AND</li> 
    * </ul>
+   * @param supportsJoin 是否支持外键关联，如果支持，并且带有@JoinColumn的字段不为空，则创建关联查询。
    * @see SQLFactory#conditions(SQLRequest)
    * @return
    */
-  public SQLReady conditions() {
-    return SQLFactory.getInstance().conditions(this);
+  public SQLReady conditions(boolean supportsJoin) {
+    return SQLFactory.getInstance().conditions(this, supportsJoin);
   }
 
   @Override

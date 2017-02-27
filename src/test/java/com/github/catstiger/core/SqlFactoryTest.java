@@ -12,6 +12,7 @@ import com.github.catstiger.core.db.SQLFactory;
 import com.github.catstiger.core.db.SQLReady;
 import com.github.catstiger.core.db.SQLRequest;
 import com.github.catstiger.core.db.model.TestDbModel;
+import com.github.catstiger.core.db.model.TestRefModel;
 import com.github.catstiger.core.db.ns.AbbreviationNamingStrategy;
 import com.github.catstiger.utils.StringUtils;
 
@@ -26,21 +27,27 @@ public class SqlFactoryTest {
     tdm.setUsername("sam");
     tdm.setRealName("abc");
     
+    TestRefModel ref = new TestRefModel();
+    ref.setId(9985L);
+    ref.setTitle("ESSEEESSSEESS");
+    tdm.setRefModel(ref);
+    
+    
     SQLRequest sqlRequest = new SQLRequest(tdm).usingAlias(true);
-    String sql = SQLFactory.getInstance().select(sqlRequest).getSql();
+    String sql = SQLFactory.getInstance().select(sqlRequest, true).getSql();
     System.out.println(sql);
     
     sqlRequest = new SQLRequest(tdm).usingAlias(false);
-    sql = SQLFactory.getInstance().select(sqlRequest).getSql();
+    sql = SQLFactory.getInstance().select(sqlRequest, true).getSql();
     System.out.println(sql);
     
     sqlRequest = new SQLRequest(tdm).usingAlias(false).byId(true);
-    sql = SQLFactory.getInstance().select(sqlRequest).getSql();
+    sql = SQLFactory.getInstance().select(sqlRequest, true).getSql();
     System.out.println(sql);
     
     
     SQLRequest sqlRequest1 = new SQLRequest(tdm).namingStrategy(new AbbreviationNamingStrategy()).usingAlias(true);
-    sql = SQLFactory.getInstance().select(sqlRequest1).getSql();
+    sql = SQLFactory.getInstance().select(sqlRequest1,true).getSql();
     System.out.println(sql);
     
     UserApp app = new UserApp();
@@ -51,7 +58,7 @@ public class SqlFactoryTest {
     app.setDescn(StringUtils.random(12));
     
     SQLRequest sr = new SQLRequest(app).usingAlias(true);
-    sql = SQLFactory.getInstance().select(sr).getSql();
+    sql = SQLFactory.getInstance().select(sr, false).getSql();
     System.out.println(sql);
   }
   @Test
@@ -91,8 +98,12 @@ public class SqlFactoryTest {
     tdm.setDescn("datasdlksfdl乐山大佛乐山大佛");
     tdm.setUsername("sam");
     tdm.setRealName("abc");
+    TestRefModel ref = new TestRefModel();
+    ref.setId(9985L);
+    ref.setTitle("ESSEEESSSEESS");
+    tdm.setRefModel(ref);
     
-    SQLReady sqlReady = SQLFactory.getInstance().conditions(new SQLRequest(tdm).usingAlias(false).namedParams(false));
+    SQLReady sqlReady = SQLFactory.getInstance().conditions(new SQLRequest(tdm).usingAlias(false).namedParams(false), true);
     System.out.println("#######不使用别名，也不使用命名参数");
     System.out.println(sqlReady.getSql());
     System.out.println(Arrays.toString(sqlReady.getArgs()));
@@ -106,17 +117,17 @@ public class SqlFactoryTest {
     }
     Assert.isTrue(count == sqlReady.getArgs().length);
     System.out.println("#######使用别名，不使用命名参数");
-    sqlReady = SQLFactory.getInstance().conditions(new SQLRequest(tdm).usingAlias(true).namedParams(false));
+    sqlReady = SQLFactory.getInstance().conditions(new SQLRequest(tdm).usingAlias(true).namedParams(false), true);
     System.out.println(sqlReady.getSql());
     System.out.println(Arrays.toString(sqlReady.getArgs()));
     
     System.out.println("#######不使用别名，使用命名参数");
-    sqlReady = SQLFactory.getInstance().conditions(new SQLRequest(tdm).usingAlias(false).namedParams(true));
+    sqlReady = SQLFactory.getInstance().conditions(new SQLRequest(tdm).usingAlias(false).namedParams(true), true);
     System.out.println(sqlReady.getSql());
     System.out.println(Arrays.toString(sqlReady.getArgs()));
     
     System.out.println("#######使用别名+命名参数");
-    sqlReady = SQLFactory.getInstance().conditions(new SQLRequest(tdm).usingAlias(true).namedParams(true));
+    sqlReady = SQLFactory.getInstance().conditions(new SQLRequest(tdm).usingAlias(true).namedParams(true), true);
     System.out.println(sqlReady.getSql());
     System.out.println(Arrays.toString(sqlReady.getArgs()));
   }
@@ -135,7 +146,7 @@ public class SqlFactoryTest {
     tdm.setUsername("sam");
     tdm.setRealName("abc");
     
-    SQLReady sqlReady = SQLFactory.getInstance().conditions(new SQLRequest(tdm).usingAlias(true).excludes("radis").namedParams(true));
+    SQLReady sqlReady = SQLFactory.getInstance().conditions(new SQLRequest(tdm).usingAlias(true).excludes("radis").namedParams(true), false);
     System.out.println(sqlReady.getSql());
     System.out.println(sqlReady.getNamedParameters());
     
