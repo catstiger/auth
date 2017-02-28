@@ -260,11 +260,8 @@ public final class SQLRequest {
     } else {
       sql.append(" 1=1 ");
     }
-    
-    sqlReady.setSql(sql.toString());
-    sqlReady.setLimitSql(limitSql);
-    
-    return sqlReady;
+  
+    return new SQLReady(sql.toString(), sqlReady.getArgs()).withLimitSql(limitSql);
   }
   /**
    * 根据给定的实体，生成查询SQL，生成的规则参考{@link #conditions()}，不支持外键关联

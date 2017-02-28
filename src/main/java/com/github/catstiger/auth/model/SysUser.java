@@ -23,14 +23,14 @@ import lombok.ToString;
 public class SysUser extends BaseEntity {
   
   @Column(length = 32, unique = true, nullable = false)
-  @Index
+  @Index(unique = true)
   private String username;
   
   @Column(length = 128)
   private String password;
   
   @Column(length = 32, unique = true)
-  @Index
+  @Index(unique = true)
   private String mobile;
   
   @Column(length = 64, unique = true)

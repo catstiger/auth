@@ -9,7 +9,6 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.github.catstiger.auth.model.SysUser;
-import com.github.catstiger.core.db.SQLFactory;
 import com.github.catstiger.core.db.SQLReady;
 import com.github.catstiger.core.db.SQLRequest;
 import com.github.catstiger.core.db.id.IdGen;
@@ -30,10 +29,9 @@ public class SysUserDao {
    * @return Instance of SysUser
    */
   public SysUser byMobile(String mobile) {
-    String sql = new StringBuilder(SQLFactory.getInstance().select(new SQLRequest(SysUser.class), false).getSql())
-        .append(" WHERE mobile=? limit 1").toString();
-    log.debug("SysUserDao.byMobile: {}", sql);
-    List<SysUser> users = jdbcTemplate.query(sql, new Object[]{mobile}, new BeanRowMapper<SysUser>(SysUser.class));
+    SQLReady sqlReady = new SQLRequest(SysUser.class).select().append(" WHERE mobile=? limit 1", mobile);
+    log.debug("SysUserDao.byMobile: {}", sqlReady.getSql());
+    List<SysUser> users = jdbcTemplate.query(sqlReady.getSql(), sqlReady.getArgs(), new BeanRowMapper<SysUser>(SysUser.class));
     
     return (users == null || users.isEmpty()) ? null : users.get(0);
   }
@@ -69,9 +67,9 @@ public class SysUserDao {
   @Transactional
   public SysUser insert(SysUser entity) {
     entity.setId(idGen.nextId());
-    SQLReady sqlReady = SQLFactory.getInstance().insert(new SQLRequest(entity));
-    jdbcTemplate.update(sqlReady.getSql(), sqlReady.getArgs());
+    SQLReady sqlReady = new SQLRequest(entity).insertNonNull();
     
+    jdbcTemplate.update(sqlReady.getSql(), sqlReady.getArgs());
     return entity;
   }
 }
